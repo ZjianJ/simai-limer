@@ -1,0 +1,14 @@
+# Parameters used by limer/scripts/run_healthy_monitoring.sh.
+# This file documents the run; the shell script is authoritative.
+topology: Spectrum-X_8g_4gps_100Gbps_A100  # 8 GPUs, 2 servers x 4 GPUs, generated via
+                                            # gen_Topo_Template.py -topo Spectrum-X -g 8 -gps 4 -gt A100 -bw 100Gbps -nvbw 2400Gbps
+workload: microAllReduce_10iter.txt
+configuration: SimAI.baseline.conf
+telemetry_interval_us: 1000
+seeds: [42, 123, 2026]
+fault_enabled: false
+note: >
+  Seeds are tagged for schema compliance; this SimAI build exposes no RNG
+  source at the ns3-frontend layer (see docs/monitoring_design.md), so all
+  three runs are verified bit-identical once the run_id column is
+  stripped (see results/healthy/determinism_check.json).

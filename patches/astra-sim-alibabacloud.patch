@@ -1,0 +1,685 @@
+diff --git a/astra-sim-alibabacloud/astra-sim/network_frontend/ns3/AstraSimNetwork.cc b/astra-sim-alibabacloud/astra-sim/network_frontend/ns3/AstraSimNetwork.cc
+index 9ad3ff9..b621829 100644
+--- a/astra-sim-alibabacloud/astra-sim/network_frontend/ns3/AstraSimNetwork.cc
++++ b/astra-sim-alibabacloud/astra-sim/network_frontend/ns3/AstraSimNetwork.cc
+@@ -84,6 +84,14 @@ public:
+              << "\n";
+       }
+     }
++    // LIMER telemetry: sim_finish() exits the process directly, so
++    // Simulator::Run() in main() below never returns normally - flushing
++    // and closing here (not after Simulator::Run()) is the only place
++    // guaranteed to run before exit(). Confirmed by the baseline run.log,
++    // which ends immediately after these "All data sent/received" lines
++    // with no further output.
++    limer::TelemetryCollector::Get().Flush();
++    limer::TelemetryCollector::Get().Close();
+     exit(0);
+     return 0;
+   }
+@@ -326,6 +334,12 @@ int main(int argc, char *argv[]) {
+ 
+   Simulator::Run();
+   Simulator::Stop(Seconds(2000000000));
++  // LIMER telemetry: flush+close before Destroy() so no buffered rows are
++  // lost when ns-3 tears down (this run's sim_finish() above also calls
++  // exit(0) directly in some code paths, so flushing as early and often as
++  // possible - see limer_telemetry.h's per-event fflush - matters).
++  limer::TelemetryCollector::Get().Flush();
++  limer::TelemetryCollector::Get().Close();
+   Simulator::Destroy();
+   
+   #ifdef NS3_MPI
+diff --git a/astra-sim-alibabacloud/astra-sim/network_frontend/ns3/entry.h b/astra-sim-alibabacloud/astra-sim/network_frontend/ns3/entry.h
+index cb43eb8..6a78041 100644
+--- a/astra-sim-alibabacloud/astra-sim/network_frontend/ns3/entry.h
++++ b/astra-sim-alibabacloud/astra-sim/network_frontend/ns3/entry.h
+@@ -47,6 +47,7 @@
+ #include <map>
+ #include"astra-sim/system/MockNcclQps.h"
+ #include "astra-sim/system/MockNcclLog.h"
++#include "limer_telemetry.h"
+ using namespace ns3;
+ using namespace std;
+ 
+@@ -107,6 +108,11 @@ bool is_receive_finished(int src,int dst,AstraSim::ncclFlowTag flowTag){
+ void SendFlow(int src, int dst, uint64_t maxPacketCount,
+               void (*msg_handler)(void *fun_arg), void *fun_arg, int tag, AstraSim::sim_request *request) {
+   MockNcclLog*NcclLog = MockNcclLog::getInstance();
++  // LIMER telemetry: one flow (astra-sim's network-layer send unit) is
++  // issued here, before it is split across QPs below. Pairs with the
++  // RecordCollectiveFinish() call in notify_sender_sending_finished().
++  limer::TelemetryCollector::Get().RecordCollectiveStart(
++      request->flowTag.current_flow_id, src, maxPacketCount);
+   uint64_t PacketCount=((maxPacketCount+_QPS_PER_CONNECTION_-1)/_QPS_PER_CONNECTION_);
+   uint64_t leftPacketCount = maxPacketCount;
+   for(int index = 0 ;index<_QPS_PER_CONNECTION_;index++){
+@@ -238,7 +244,13 @@ void notify_receiver_receive_data(int sender_node, int receiver_node,
+ 
+ void notify_sender_sending_finished(int sender_node, int receiver_node,
+                                     uint64_t message_size, AstraSim::ncclFlowTag flowTag) {
+-  { 
++  // LIMER telemetry: this function fires exactly once per flow, once
++  // send_finish() confirms every QP for flowTag.current_flow_id has sent
++  // its full byte count (see is_sending_finished() gate in send_finish()).
++  // Pairs with the RecordCollectiveStart() call in SendFlow() below.
++  limer::TelemetryCollector::Get().RecordCollectiveFinish(
++      flowTag.current_flow_id, sender_node, node_num - switch_num - nvswitch_num);
++  {
+     MockNcclLog * NcclLog = MockNcclLog::getInstance();
+     #ifdef NS3_MTP
+     MtpInterface::explicitCriticalSection cs;
+@@ -380,6 +392,18 @@ int main1(string network_topo,string network_conf) {
+   SetConfig();
+   SetupNetwork(qp_finish,send_finish);
+ 
++  // LIMER telemetry: n / nbr2if / node_num / switch_num / nvswitch_num are
++  // now populated by SetupNetwork(). Init() builds the link map and (if
++  // enabled) opens the CSV files; StartPeriodicSampling() schedules the
++  // first switch/NIC sample tick.
++  limer::TelemetryCollector::Get().Init(&n);
++  limer::TelemetryCollector::Get().StartPeriodicSampling();
++  // LIMER dynamic fault injection: no-op unless LIMER_FAULT_SCHEDULE is
++  // set (see limer/tools/generate_fault_schedule.py). Must come after the
++  // TelemetryCollector's link map is built (GetDeviceForLink depends on
++  // it) and before Simulator::Run() so its Simulator::Schedule calls land.
++  limer::FaultInjector::Get().Init();
++
+ std::cout << "Running Simulation.\n";
+   fflush(stdout);
+   NS_LOG_INFO("Run Simulation.");
+diff --git a/astra-sim-alibabacloud/astra-sim/network_frontend/ns3/limer_telemetry.h b/astra-sim-alibabacloud/astra-sim/network_frontend/ns3/limer_telemetry.h
+new file mode 100644
+index 0000000..cccfa38
+--- /dev/null
++++ b/astra-sim-alibabacloud/astra-sim/network_frontend/ns3/limer_telemetry.h
+@@ -0,0 +1,550 @@
++/*
++ * LIMER Phase M1 telemetry collector.
++ *
++ * Bystander instrumentation: reads counters already incremented in
++ * ns-3-alibabacloud's SwitchNode/RdmaHw (see limer/docs/code_map.md), never
++ * participates in packet forwarding, admission control, congestion control,
++ * or collective scheduling decisions. Included from entry.h, after
++ * common.h, so it can see common.h's globals directly (n, nbr2if, node_num,
++ * switch_num, nvswitch_num, gpus_per_server) rather than re-deriving them.
++ *
++ * Env config: LIMER_TELEMETRY_ENABLE (default 1), LIMER_TELEMETRY_INTERVAL_US
++ * (default 1000), LIMER_TELEMETRY_DIR (required if enabled), LIMER_RUN_ID
++ * (default: generated).
++ */
++#ifndef LIMER_TELEMETRY_H
++#define LIMER_TELEMETRY_H
++
++#include "ns3/switch-node.h"
++#include "ns3/rdma-hw.h"
++#include "ns3/rdma-driver.h"
++#include "ns3/simulator.h"
++#include "ns3/qbb-net-device.h"
++#include "ns3/error-model.h"
++#include "ns3/data-rate.h"
++#include "ns3/double.h"
++#include "ns3/string.h"
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <ctime>
++#include <fstream>
++#include <map>
++#include <string>
++#include <vector>
++#ifdef NS3_MTP
++#include "ns3/mtp-interface.h"
++#endif
++
++namespace limer {
++
++struct PendingFlow {
++  int sender_node;
++  uint64_t msg_size;
++  uint64_t start_ns;
++};
++
++class TelemetryCollector {
++ public:
++  static TelemetryCollector& Get() {
++    static TelemetryCollector inst;
++    return inst;
++  }
++
++  // Call once, after SetupNetwork() has populated n / nbr2if / node_num /
++  // switch_num / nvswitch_num, and before Simulator::Run().
++  void Init(ns3::NodeContainer* nodes) {
++    nodes_ = nodes;
++    const char* enableEnv = std::getenv("LIMER_TELEMETRY_ENABLE");
++    enabled_ = !(enableEnv && std::string(enableEnv) == "0");
++    const char* intervalEnv = std::getenv("LIMER_TELEMETRY_INTERVAL_US");
++    interval_us_ = intervalEnv ? std::strtoul(intervalEnv, nullptr, 10) : 1000;
++    const char* dirEnv = std::getenv("LIMER_TELEMETRY_DIR");
++    dir_ = dirEnv ? std::string(dirEnv) : std::string(".");
++    const char* runIdEnv = std::getenv("LIMER_RUN_ID");
++    if (runIdEnv) {
++      run_id_ = runIdEnv;
++    } else {
++      char buf[64];
++      std::snprintf(buf, sizeof(buf), "run-%ld", (long)std::time(nullptr));
++      run_id_ = buf;
++    }
++
++    BuildLinkMap();
++
++    if (!enabled_) return;
++
++    std::string switchPath = dir_ + "/switch_telemetry.csv";
++    std::string nicPath = dir_ + "/nic_telemetry.csv";
++    std::string collPath = dir_ + "/collective_telemetry.csv";
++    switch_file_ = std::fopen(switchPath.c_str(), "w");
++    nic_file_ = std::fopen(nicPath.c_str(), "w");
++    coll_file_ = std::fopen(collPath.c_str(), "w");
++    if (!switch_file_ || !nic_file_ || !coll_file_) {
++      std::fprintf(stderr, "LIMER: failed to open telemetry output files under %s\n", dir_.c_str());
++      std::exit(1);
++    }
++    std::fprintf(switch_file_,
++        "run_id,timestamp_ns,switch_id,port_id,link_id,peer_node_id,direction,"
++        "tx_packets,tx_bytes,rx_packets,rx_bytes,dropped_packets,drop_bytes,"
++        "queue_packets,queue_bytes,max_queue_packets,max_queue_bytes,"
++        "ecn_marks,pfc_events,link_errors,configured_bandwidth_bps,"
++        "observed_throughput_bps,utilization\n");
++    std::fprintf(nic_file_,
++        "run_id,timestamp_ns,node_id,rank_id,nic_id,link_id,tx_packets,"
++        "tx_bytes,rx_packets,rx_bytes,retransmissions,nacks,"
++        "outstanding_packets,outstanding_bytes,effective_throughput_bps,"
++        "completion_delay_ns,rtt_proxy_ns\n");
++    std::fprintf(coll_file_,
++        "run_id,collective_id,iteration_id,layer_id,collective_type,"
++        "algorithm,rank_id,world_size,message_size_bytes,start_time_ns,"
++        "finish_time_ns,duration_ns,status\n");
++    std::fflush(switch_file_);
++    std::fflush(nic_file_);
++    std::fflush(coll_file_);
++
++    WriteLinkMapCsv();
++  }
++
++  bool Enabled() const { return enabled_; }
++  const std::string& RunId() const { return run_id_; }
++
++  void StartPeriodicSampling() {
++    if (!enabled_) return;
++    ns3::Simulator::Schedule(ns3::MicroSeconds(interval_us_),
++                              &TelemetryCollector::Sample, this);
++  }
++
++  void Sample() {
++    if (!enabled_) return;
++    uint64_t now = ns3::Simulator::Now().GetNanoSeconds();
++    for (uint32_t i = 0; i < nodes_->GetN(); ++i) {
++      ns3::Ptr<ns3::Node> node = nodes_->Get(i);
++      if (node->GetNodeType() == 1) {
++        SampleSwitch(node, now);
++      } else if (node->GetNodeType() == 0) {
++        SampleHost(node, now);
++      }
++      // NodeType 2 (NVSwitch) carries INTRA_NODE NVLink traffic, out of
++      // scope for M1's ACCESS-link focus (see monitoring_design.md).
++    }
++    ns3::Simulator::Schedule(ns3::MicroSeconds(interval_us_),
++                              &TelemetryCollector::Sample, this);
++  }
++
++  void RecordCollectiveStart(int flow_id, int sender_node, uint64_t msg_size) {
++    if (!enabled_) return;
++    PendingFlow pf;
++    pf.sender_node = sender_node;
++    pf.msg_size = msg_size;
++    pf.start_ns = ns3::Simulator::Now().GetNanoSeconds();
++    pending_[flow_id] = pf;
++  }
++
++  void RecordCollectiveFinish(int flow_id, int rank_id, uint64_t world_size) {
++    if (!enabled_) return;
++    auto it = pending_.find(flow_id);
++    if (it == pending_.end()) return; // unmatched (e.g. NVSwitch rank), skip
++    uint64_t finish_ns = ns3::Simulator::Now().GetNanoSeconds();
++    const PendingFlow& pf = it->second;
++    // collective_type/algorithm are constants for this M1 workload family
++    // (every entry in limer/configs/microAllReduce_20iter.txt is ALLREDUCE,
++    // and this SimAI build always uses NcclFlowModel - confirmed in
++    // limer/results/baseline/summary.json). iteration_id/layer_id are left
++    // empty: the ncclFlowTag reaching this ns3-frontend hook carries no
++    // layer-name/iteration field (see code_map.md, section C) - deriving
++    // them would require hooking astra-sim's Sys/Workload layer, out of
++    // scope for M1 (see final report "known limitations").
++    std::fprintf(coll_file_, "%s,%d,,,%s,%s,%d,%lu,%lu,%lu,%lu,%lu,ok\n",
++        run_id_.c_str(), flow_id, "ALLREDUCE", "NcclFlowModel", rank_id,
++        (unsigned long)world_size, (unsigned long)pf.msg_size,
++        (unsigned long)pf.start_ns, (unsigned long)finish_ns,
++        (unsigned long)(finish_ns - pf.start_ns));
++    std::fflush(coll_file_);
++    pending_.erase(it);
++  }
++
++  void Flush() {
++    if (!enabled_) return;
++    if (switch_file_) std::fflush(switch_file_);
++    if (nic_file_) std::fflush(nic_file_);
++    if (coll_file_) std::fflush(coll_file_);
++  }
++
++  void Close() {
++    if (switch_file_) { std::fclose(switch_file_); switch_file_ = nullptr; }
++    if (nic_file_) { std::fclose(nic_file_); nic_file_ = nullptr; }
++    if (coll_file_) { std::fclose(coll_file_); coll_file_ = nullptr; }
++  }
++
++  // LIMER fault injection support: resolve a link_id (from link_map.csv,
++  // same table built in BuildLinkMap()) to the ns-3 device on its "src"
++  // side, and the link's configured (pre-fault) bandwidth. Used by
++  // FaultInjector below so it never has to re-derive node/port from a
++  // link_id itself.
++  // A point-to-point link has two NetDevice endpoints (one per node), both
++  // normally configured with the same DataRate at topology setup (see
++  // common.h's SetupNetwork(), which sets the attribute once before
++  // qbb.Install() creates both). Changing only one side's DataRate at
++  // runtime desyncs the two directions, so fault injection must touch
++  // both - this returns both, keyed the same way BuildLinkMap() stores
++  // them (src = the lower-numbered node id).
++  std::pair<ns3::Ptr<ns3::QbbNetDevice>, ns3::Ptr<ns3::QbbNetDevice>> GetBothDevicesForLink(const std::string& link_id) {
++    for (auto& e : links_) {
++      if (e.link_id == link_id) {
++        auto srcDev = ns3::DynamicCast<ns3::QbbNetDevice>(nodes_->Get(e.src_node)->GetDevice(e.src_port));
++        auto dstDev = ns3::DynamicCast<ns3::QbbNetDevice>(nodes_->Get(e.dst_node)->GetDevice(e.dst_port));
++        return {srcDev, dstDev};
++      }
++    }
++    return {nullptr, nullptr};
++  }
++  uint64_t GetConfiguredBandwidthBps(const std::string& link_id) {
++    for (auto& e : links_) {
++      if (e.link_id == link_id) return e.bandwidth_bps;
++    }
++    return 0;
++  }
++
++ private:
++  struct LinkEntry {
++    std::string link_id;
++    uint32_t src_node, dst_node;
++    std::string src_type, dst_type;
++    uint32_t src_port, dst_port;
++    std::string link_class;
++    uint64_t bandwidth_bps;
++    uint64_t delay_ns;
++  };
++
++  static std::string NodeTypeName(ns3::Ptr<ns3::Node> node) {
++    switch (node->GetNodeType()) {
++      case 0: return "HOST";
++      case 1: return "SWITCH";
++      case 2: return "NVSWITCH";
++      default: return "OTHER";
++    }
++  }
++
++  static std::string ClassifyLink(const std::string& a, const std::string& b) {
++    if ((a == "HOST" && b == "NVSWITCH") || (a == "NVSWITCH" && b == "HOST"))
++      return "INTRA_NODE";
++    if ((a == "HOST" && b == "SWITCH") || (a == "SWITCH" && b == "HOST"))
++      return "ACCESS";
++    if (a == "SWITCH" && b == "SWITCH")
++      return "INTER_SWITCH";
++    return "OTHER";
++  }
++
++  // Builds the link table from nbr2if (extern global from common.h,
++  // populated by SetupNetwork() from the topology file). One entry per
++  // unordered node pair, plus lookup indices by (node_id, port) so the
++  // periodic sampler can attach a link_id to each switch port / NIC.
++  void BuildLinkMap() {
++    for (uint32_t i = 0; i < nodes_->GetN(); ++i) {
++      ns3::Ptr<ns3::Node> a = nodes_->Get(i);
++      auto itA = nbr2if.find(a);
++      if (itA == nbr2if.end()) continue;
++      for (auto& kv : itA->second) {
++        ns3::Ptr<ns3::Node> b = kv.first;
++        if (b->GetId() < a->GetId()) continue; // dedupe unordered pair
++        const Interface& ifc = kv.second;
++        LinkEntry e;
++        char idbuf[64];
++        std::snprintf(idbuf, sizeof(idbuf), "L%u-%u", a->GetId(), b->GetId());
++        e.link_id = idbuf;
++        e.src_node = a->GetId();
++        e.dst_node = b->GetId();
++        e.src_type = NodeTypeName(a);
++        e.dst_type = NodeTypeName(b);
++        e.src_port = ifc.idx;
++        auto itB = nbr2if.find(b);
++        e.dst_port = (itB != nbr2if.end() && itB->second.count(a)) ? itB->second[a].idx : 0;
++        e.link_class = ClassifyLink(e.src_type, e.dst_type);
++        e.bandwidth_bps = ifc.bw;
++        e.delay_ns = ifc.delay;
++        links_.push_back(e);
++        link_id_by_node_port_[{e.src_node, e.src_port}] = e.link_id;
++        link_id_by_node_port_[{e.dst_node, e.dst_port}] = e.link_id;
++        peer_by_node_port_[{e.src_node, e.src_port}] = e.dst_node;
++        peer_by_node_port_[{e.dst_node, e.dst_port}] = e.src_node;
++      }
++    }
++  }
++
++  void WriteLinkMapCsv() {
++    std::string path = dir_ + "/link_map.csv";
++    FILE* f = std::fopen(path.c_str(), "w");
++    if (!f) return;
++    std::fprintf(f, "link_id,src_node,dst_node,src_type,dst_type,src_port,dst_port,link_class,bandwidth_bps,delay_ns\n");
++    for (auto& e : links_) {
++      std::fprintf(f, "%s,%u,%u,%s,%s,%u,%u,%s,%lu,%lu\n",
++          e.link_id.c_str(), e.src_node, e.dst_node, e.src_type.c_str(),
++          e.dst_type.c_str(), e.src_port, e.dst_port, e.link_class.c_str(),
++          (unsigned long)e.bandwidth_bps, (unsigned long)e.delay_ns);
++    }
++    std::fclose(f);
++  }
++
++  std::string LinkIdFor(uint32_t node, uint32_t port) {
++    auto it = link_id_by_node_port_.find({node, port});
++    return it == link_id_by_node_port_.end() ? "" : it->second;
++  }
++  uint32_t PeerFor(uint32_t node, uint32_t port) {
++    auto it = peer_by_node_port_.find({node, port});
++    return it == peer_by_node_port_.end() ? 0 : it->second;
++  }
++
++  // Joins a fixed-size field vector with commas and writes one CSV row.
++  // Using an explicit vector (rather than hand-counting commas in a printf
++  // format string) is deliberate: this schema has 17-23 columns per row and
++  // most are conditionally empty, which is exactly the kind of thing that
++  // silently corrupts column alignment with manual format strings.
++  static void WriteRow(FILE* f, const std::vector<std::string>& fields) {
++    for (size_t i = 0; i < fields.size(); ++i) {
++      if (i) std::fputc(',', f);
++      std::fputs(fields[i].c_str(), f);
++    }
++    std::fputc('\n', f);
++  }
++  static std::string U(unsigned long v) { return std::to_string(v); }
++  static const std::string& Empty() {
++    static const std::string e;
++    return e;
++  }
++
++  void SampleSwitch(ns3::Ptr<ns3::Node> node, uint64_t now) {
++    ns3::Ptr<ns3::SwitchNode> sw = ns3::DynamicCast<ns3::SwitchNode>(node);
++    if (!sw) return;
++    uint32_t nDev = sw->GetNDevices();
++    uint32_t swId = node->GetId();
++    for (uint32_t p = 1; p < nDev; ++p) {
++      std::string linkId = LinkIdFor(swId, p);
++      if (linkId.empty()) continue; // port not on a link we classified (shouldn't happen)
++      uint64_t queueBytes = 0;
++      for (uint32_t q = 0; q < 8 /* SwitchMmu::qCnt */; ++q) {
++        queueBytes += sw->m_mmu->egress_bytes[p][q];
++      }
++      // Live read, not the cached topology-parse-time value: a dynamic
++      // fault (limer::FaultInjector) can change a device's DataRate mid-run
++      // via SetDataRate(), and configured_bandwidth_bps must reflect that
++      // or a naive utilization=throughput/configured_bandwidth calculation
++      // would use the pre-fault denominator during exactly the window a
++      // detection algorithm cares about. Falls back to the static topology
++      // value if the device isn't (for some reason) a QbbNetDevice.
++      uint64_t bw = 0;
++      ns3::Ptr<ns3::QbbNetDevice> qbbDev = ns3::DynamicCast<ns3::QbbNetDevice>(sw->GetDevice(p));
++      if (qbbDev) {
++        bw = qbbDev->GetDataRate().GetBitRate();
++      } else {
++        for (auto& e : links_) {
++          if (e.link_id == linkId) { bw = e.bandwidth_bps; break; }
++        }
++      }
++      std::string peer = U(PeerFor(swId, p));
++
++      // Field order must match the switch_telemetry.csv header written in
++      // Init(): run_id,timestamp_ns,switch_id,port_id,link_id,
++      // peer_node_id,direction,tx_packets,tx_bytes,rx_packets,rx_bytes,
++      // dropped_packets,drop_bytes,queue_packets,queue_bytes,
++      // max_queue_packets,max_queue_bytes,ecn_marks,pfc_events,
++      // link_errors,configured_bandwidth_bps,observed_throughput_bps,
++      // utilization (23 columns).
++      WriteRow(switch_file_, {
++          run_id_, U(now), U(swId), U(p), linkId, peer, "tx",
++          U(sw->m_limerTxPkts[p]), U(sw->GetLimerTxBytes(p)),
++          Empty(), Empty(),
++          U(sw->m_limerDropPkts[p]), U(sw->m_limerDropBytes[p]),
++          Empty(), U(queueBytes), Empty(), Empty(),
++          U(sw->m_limerEcnMarks[p]), U(sw->m_limerPfcEvents[p]),
++          Empty(), U(bw), Empty(), Empty()});
++      WriteRow(switch_file_, {
++          run_id_, U(now), U(swId), U(p), linkId, peer, "rx",
++          Empty(), Empty(),
++          U(sw->m_limerRxPkts[p]), Empty(),
++          Empty(), Empty(),
++          Empty(), Empty(), Empty(), Empty(),
++          Empty(), Empty(),
++          Empty(), Empty(), Empty(), Empty()});
++    }
++  }
++
++  void SampleHost(ns3::Ptr<ns3::Node> node, uint64_t now) {
++    ns3::Ptr<ns3::RdmaDriver> drv = node->GetObject<ns3::RdmaDriver>();
++    if (!drv || !drv->m_rdma) return;
++    ns3::Ptr<ns3::RdmaHw> hw = drv->m_rdma;
++    uint32_t nodeId = node->GetId();
++    uint64_t outstanding = 0;
++    for (auto& kv : hw->m_qpMap) {
++      outstanding += kv.second->GetOnTheFly();
++    }
++    for (size_t nic = 0; nic < hw->m_nic.size(); ++nic) {
++      // Host device index: NIC i's ns-3 ifIndex is (nic + 1) in this build
++      // (device 0 is loopback) - matches the port-numbering PrintHostBW /
++      // UpdateTxBytes already use for m_nic/tx_bytes indexing.
++      std::string linkId = LinkIdFor(nodeId, (uint32_t)nic + 1);
++      // Field order must match nic_telemetry.csv header: run_id,
++      // timestamp_ns,node_id,rank_id,nic_id,link_id,tx_packets,tx_bytes,
++      // rx_packets,rx_bytes,retransmissions,nacks,outstanding_packets,
++      // outstanding_bytes,effective_throughput_bps,completion_delay_ns,
++      // rtt_proxy_ns (17 columns).
++      WriteRow(nic_file_, {
++          run_id_, U(now), U(nodeId), U(nodeId), std::to_string(nic), linkId,
++          U(hw->m_limerTxPkts), U(hw->tx_bytes[nic]),
++          U(hw->m_limerRxPkts), U(hw->m_limerRxBytes),
++          U(hw->m_limerNacks), U(hw->m_limerNacks),
++          Empty(), U(outstanding), Empty(), Empty(), Empty()});
++    }
++  }
++
++  bool enabled_ = true;
++  uint32_t interval_us_ = 1000;
++  std::string dir_;
++  std::string run_id_;
++  ns3::NodeContainer* nodes_ = nullptr;
++  FILE* switch_file_ = nullptr;
++  FILE* nic_file_ = nullptr;
++  FILE* coll_file_ = nullptr;
++  std::vector<LinkEntry> links_;
++  std::map<std::pair<uint32_t, uint32_t>, std::string> link_id_by_node_port_;
++  std::map<std::pair<uint32_t, uint32_t>, uint32_t> peer_by_node_port_;
++  std::map<int, PendingFlow> pending_;
++};
++
++// LIMER dynamic fault injector: reads a fault schedule (CSV, same schema
++// as fault_events.csv - fault_id,fault_type,target_link_id,start_time_ns,
++// end_time_ns,severity,parameter_before,parameter_after) generated ahead
++// of time by limer/tools/generate_fault_schedule.py, and schedules a
++// Simulator::Schedule callback pair (apply at start_time_ns, revert at
++// end_time_ns) per row. All randomness lives in the Python generator -
++// this class just plays back a fixed, already-decided schedule, so a
++// given schedule file always produces the same fault timeline regardless
++// of anything about the C++/ns-3 side (this build has no exposed RNG
++// anyway, see docs/monitoring_design.md).
++//
++// Only touches ns3::QbbNetDevice::SetDataRate()/SetReceiveErrorModel() -
++// both already-public methods on the base PointToPointNetDevice class,
++// the same setters SimAI's own topology parser uses at startup (see
++// common.h's SetupNetwork()). No new ns-3 mechanism, no change to
++// forwarding/admission/congestion-control logic.
++struct FaultScheduleEntry {
++  std::string fault_id;
++  std::string fault_type;
++  std::string target_link_id;
++  uint64_t start_ns;
++  uint64_t end_ns;
++  std::string parameter_before;
++  std::string parameter_after;
++};
++
++class FaultInjector {
++ public:
++  static FaultInjector& Get() {
++    static FaultInjector inst;
++    return inst;
++  }
++
++  void Init() {
++    const char* path = std::getenv("LIMER_FAULT_SCHEDULE");
++    if (!path) return;
++    std::ifstream f(path);
++    if (!f.is_open()) {
++      std::fprintf(stderr, "LIMER: could not open LIMER_FAULT_SCHEDULE=%s\n", path);
++      return;
++    }
++    std::string line;
++    std::getline(f, line); // header
++    while (std::getline(f, line)) {
++      if (line.empty()) continue;
++      std::vector<std::string> cols = SplitCsv(line);
++      if (cols.size() < 8) continue;
++      if (cols[1].rfind("BLOCKED", 0) == 0) continue; // skip pre-marked-blocked rows
++      FaultScheduleEntry e;
++      e.fault_id = cols[0];
++      e.fault_type = cols[1];
++      e.target_link_id = cols[2];
++      e.start_ns = std::strtoull(cols[3].c_str(), nullptr, 10);
++      e.end_ns = std::strtoull(cols[4].c_str(), nullptr, 10);
++      e.parameter_before = cols[6];
++      e.parameter_after = cols[7];
++      entries_.push_back(e);
++    }
++    for (auto& e : entries_) {
++      ns3::Simulator::Schedule(ns3::NanoSeconds(e.start_ns), &FaultInjector::Apply, this, e);
++      if (e.end_ns > e.start_ns) {
++        ns3::Simulator::Schedule(ns3::NanoSeconds(e.end_ns), &FaultInjector::Revert, this, e);
++      }
++    }
++    std::fprintf(stderr, "LIMER: loaded %zu fault schedule entries from %s\n", entries_.size(), path);
++  }
++
++ private:
++  static std::vector<std::string> SplitCsv(const std::string& line) {
++    std::vector<std::string> out;
++    std::string cur;
++    for (char c : line) {
++      if (c == ',') { out.push_back(cur); cur.clear(); }
++      else cur += c;
++    }
++    out.push_back(cur);
++    // Defensive trim: strips a trailing '\r' (CRLF-written CSVs - the
++    // generator now writes LF-only, but a hand-edited or foreign CSV could
++    // still have it) so e.g. ns3::DataRate("40Gbps\r") never silently
++    // fails to parse.
++    for (auto& s : out) {
++      while (!s.empty() && (s.back() == '\r' || s.back() == '\n' || s.back() == ' ')) {
++        s.pop_back();
++      }
++    }
++    return out;
++  }
++
++  void Apply(FaultScheduleEntry e) {
++    auto devs = TelemetryCollector::Get().GetBothDevicesForLink(e.target_link_id);
++    if (!devs.first || !devs.second) {
++      std::fprintf(stderr, "LIMER: fault %s could not resolve both ends of link %s\n", e.fault_id.c_str(), e.target_link_id.c_str());
++      return;
++    }
++    // Both ends of the physical link, not just one - see
++    // GetBothDevicesForLink()'s comment for why one-sided desyncs the
++    // two traffic directions.
++    for (auto dev : {devs.first, devs.second}) {
++      if (e.fault_type == "bandwidth_degradation") {
++        dev->SetDataRate(ns3::DataRate(e.parameter_after));
++      } else if (e.fault_type == "packet_loss") {
++        ApplyErrorRate(dev, std::strtod(e.parameter_after.c_str(), nullptr));
++      }
++    }
++    std::fprintf(stderr, "LIMER-FAULT: applied %s (%s) on %s at t=%lu ns\n",
++        e.fault_id.c_str(), e.fault_type.c_str(), e.target_link_id.c_str(), (unsigned long)ns3::Simulator::Now().GetNanoSeconds());
++  }
++
++  void Revert(FaultScheduleEntry e) {
++    auto devs = TelemetryCollector::Get().GetBothDevicesForLink(e.target_link_id);
++    if (!devs.first || !devs.second) return;
++    for (auto dev : {devs.first, devs.second}) {
++      if (e.fault_type == "bandwidth_degradation") {
++        dev->SetDataRate(ns3::DataRate(e.parameter_before));
++      } else if (e.fault_type == "packet_loss") {
++        ApplyErrorRate(dev, 0.0);
++      }
++    }
++    std::fprintf(stderr, "LIMER-FAULT: reverted %s (%s) on %s at t=%lu ns\n",
++        e.fault_id.c_str(), e.fault_type.c_str(), e.target_link_id.c_str(), (unsigned long)ns3::Simulator::Now().GetNanoSeconds());
++  }
++
++  static void ApplyErrorRate(ns3::Ptr<ns3::QbbNetDevice> dev, double rate) {
++    ns3::Ptr<ns3::RateErrorModel> rem = ns3::CreateObject<ns3::RateErrorModel>();
++    ns3::Ptr<ns3::UniformRandomVariable> uv = ns3::CreateObject<ns3::UniformRandomVariable>();
++    rem->SetRandomVariable(uv);
++    rem->SetAttribute("ErrorRate", ns3::DoubleValue(rate));
++    rem->SetAttribute("ErrorUnit", ns3::StringValue("ERROR_UNIT_PACKET"));
++    dev->SetReceiveErrorModel(rem);
++  }
++
++  std::vector<FaultScheduleEntry> entries_;
++};
++
++} // namespace limer
++
++#endif // LIMER_TELEMETRY_H
+diff --git a/astra-sim-alibabacloud/astra-sim/system/MockNcclLog.h b/astra-sim-alibabacloud/astra-sim/system/MockNcclLog.h
+index 3f08da3..aea5075 100644
+--- a/astra-sim-alibabacloud/astra-sim/system/MockNcclLog.h
++++ b/astra-sim-alibabacloud/astra-sim/system/MockNcclLog.h
+@@ -26,7 +26,18 @@
+ #include <cstdarg>
+ #include <thread>
+ 
+-#define LOG_PATH  "/etc/astra-sim/"
++// LIMER env-compat patch: upstream hardcoded "/etc/astra-sim/", which is not
++// writable on non-root HPC accounts. Resolve from ASTRA_SIM_LOG_DIR (set by
++// limer/scripts/*) or fall back to $HOME/.astra-sim/. Log destination only;
++// no effect on simulation/collective semantics.
++inline std::string LimerResolveAstraSimLogDir() {
++  if (const char* envDir = std::getenv("ASTRA_SIM_LOG_DIR")) {
++    return std::string(envDir) + "/";
++  }
++  const char* home = std::getenv("HOME");
++  return (home ? std::string(home) : std::string(".")) + "/.astra-sim/";
++}
++#define LOG_PATH LimerResolveAstraSimLogDir()
+ 
+ enum class NcclLogLevel { DEBUG, INFO, WARNING,ERROR};
+ 
+diff --git a/astra-sim-alibabacloud/build.sh b/astra-sim-alibabacloud/build.sh
+index 5007f35..f6e9bf9 100755
+--- a/astra-sim-alibabacloud/build.sh
++++ b/astra-sim-alibabacloud/build.sh
+@@ -3,7 +3,9 @@ SCRIPT_DIR=$(dirname "$(realpath $0)")
+ NS3_BUILD_DIR="${SCRIPT_DIR:?}"/build/astra_ns3
+ SIMAI_PHY_BUILD_DIR="${SCRIPT_DIR:?}"/build/simai_phy
+ SIMAI_ANALYTICAL_BUILD_DIR="${SCRIPT_DIR:?}"/build/simai_analytical
+-SIM_LOG_DIR=/etc/astra-sim
++# LIMER env-compat patch: "/etc/astra-sim" is not writable on non-root HPC
++# accounts. Override with ASTRA_SIM_LOG_DIR if set; otherwise use $HOME.
++SIM_LOG_DIR="${ASTRA_SIM_LOG_DIR:-$HOME/.astra-sim}"
+ 
+ # Functions
+ function cleanup_build {

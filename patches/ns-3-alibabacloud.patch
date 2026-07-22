@@ -1,0 +1,147 @@
+diff --git a/simulation/src/point-to-point/model/rdma-hw.cc b/simulation/src/point-to-point/model/rdma-hw.cc
+index e624698..bbda42d 100644
+--- a/simulation/src/point-to-point/model/rdma-hw.cc
++++ b/simulation/src/point-to-point/model/rdma-hw.cc
+@@ -569,6 +569,8 @@ int RdmaHw::ReceiveAck(Ptr<Packet> p, CustomHeader &ch){
+ }
+ 
+ int RdmaHw::Receive(Ptr<Packet> p, CustomHeader &ch){
++	m_limerRxPkts++; // LIMER telemetry: every packet arriving at this NIC
++	m_limerRxBytes += p->GetSize();
+ 	if (ch.l3Prot == 0x11){ // UDP
+ 		ReceiveUdp(p, ch);
+ 	}else if (ch.l3Prot == 0xFF){ // CNP
+@@ -596,6 +598,7 @@ int RdmaHw::ReceiverCheckSeq(uint64_t seq, Ptr<RdmaRxQueuePair> q, uint32_t size
+ 	} else if (seq > expected) {
+ 		// Generate NACK
+ 		if (Simulator::Now() >= q->m_nackTimer || q->m_lastNACK != expected){
++			m_limerNacks++; // LIMER telemetry: NACK generated
+ 			q->m_nackTimer = Simulator::Now() + MicroSeconds(m_nack_interval);
+ 			q->m_lastNACK = expected;
+ 			if (m_backto0){
+@@ -754,6 +757,7 @@ void RdmaHw::ChangeRate(Ptr<RdmaQueuePair> qp, DataRate new_rate){
+ */
+ void RdmaHw::UpdateTxBytes(uint32_t port_id, uint64_t bytes){
+ 	tx_bytes[port_id] += bytes;
++	m_limerTxPkts++; // LIMER telemetry: one send-callback per packet
+ }
+ /**
+  * output format:
+diff --git a/simulation/src/point-to-point/model/rdma-hw.h b/simulation/src/point-to-point/model/rdma-hw.h
+index cf4512e..aa7c58b 100644
+--- a/simulation/src/point-to-point/model/rdma-hw.h
++++ b/simulation/src/point-to-point/model/rdma-hw.h
+@@ -67,6 +67,15 @@ public:
+ 	void PrintQPRate(FILE* rate_output);
+ 	void PrintQPCnpNumber(FILE* cnp_output);
+ 
++	// LIMER telemetry counters (read-only from the outside; cumulative, one
++	// RdmaHw instance per host). m_limerNacks incremented at the existing
++	// NACK-trigger site in ReceiverCheckSeq; m_limerTxPkts/m_limerRxPkts
++	// incremented alongside the existing tx_bytes/rx byte-tracking calls.
++	uint64_t m_limerNacks = 0;
++	uint64_t m_limerTxPkts = 0;
++	uint64_t m_limerRxPkts = 0;
++	uint64_t m_limerRxBytes = 0;
++
+ 	// nvls
+ 	void enable_nvls();
+ 	void disable_nvls();
+diff --git a/simulation/src/point-to-point/model/switch-node.cc b/simulation/src/point-to-point/model/switch-node.cc
+index 263a768..76bfe4f 100644
+--- a/simulation/src/point-to-point/model/switch-node.cc
++++ b/simulation/src/point-to-point/model/switch-node.cc
+@@ -94,6 +94,7 @@ void SwitchNode::CheckAndSendPfc(uint32_t inDev, uint32_t qIndex){
+ 	if (m_mmu->CheckShouldPause(inDev, qIndex)){
+ 		device->SendPfc(qIndex, 0);
+ 		m_mmu->SetPause(inDev, qIndex);
++		m_limerPfcEvents[inDev]++; // LIMER telemetry: PFC pause sent
+ 	}
+ }
+ void SwitchNode::CheckAndSendResume(uint32_t inDev, uint32_t qIndex){
+@@ -101,6 +102,7 @@ void SwitchNode::CheckAndSendResume(uint32_t inDev, uint32_t qIndex){
+ 	if (m_mmu->CheckShouldResume(inDev, qIndex)){
+ 		device->SendPfc(qIndex, 1);
+ 		m_mmu->SetResume(inDev, qIndex);
++		m_limerPfcEvents[inDev]++; // LIMER telemetry: PFC resume sent
+ 	}
+ }
+ 
+@@ -127,14 +129,29 @@ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch){
+ 				m_mmu->UpdateIngressAdmission(inDev, qIndex, p->GetSize());
+ 				m_mmu->UpdateEgressAdmission(idx, qIndex, p->GetSize());
+ 			}else{
++				// LIMER telemetry: admission-control drop, attributed to the
++				// intended egress port/queue.
++				m_limerDropPkts[idx]++;
++				m_limerDropBytes[idx] += p->GetSize();
+ 				return; // Drop
+ 			}
+ 			CheckAndSendPfc(inDev, qIndex);
+ 		}
++		m_limerRxPkts[inDev]++;
+ 		m_bytes[inDev][idx][qIndex] += p->GetSize();
+ 		m_devices[idx]->SwitchSend(qIndex, p, ch);
+ 	}else
+ 	{
++		// LIMER telemetry: no route to destination (GetOutDev returned < 0).
++		// No valid egress port exists, so attribute the drop to the ingress
++		// port instead.
++		FlowIdTag limerNoRouteTag;
++		p->PeekPacketTag(limerNoRouteTag);
++		uint32_t limerInDev = limerNoRouteTag.GetFlowId();
++		if (limerInDev < pCnt) {
++			m_limerDropPkts[limerInDev]++;
++			m_limerDropBytes[limerInDev] += p->GetSize();
++		}
+ 		return; // Drop
+ 	}
+ }
+@@ -207,6 +224,7 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
+ 		if (m_ecnEnabled){
+ 			bool egressCongested = m_mmu->ShouldSendCN(ifIndex, qIndex);
+ 			if (egressCongested){
++				m_limerEcnMarks[ifIndex]++; // LIMER telemetry: ECN mark
+ 				PppHeader ppp;
+ 				Ipv4Header h;
+ 				p->RemoveHeader(ppp);
+@@ -304,6 +322,7 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
+ 		}
+ 	}
+ 	m_txBytes[ifIndex] += p->GetSize();
++	m_limerTxPkts[ifIndex]++; // LIMER telemetry: tx packet count
+ 	m_lastPktSize[ifIndex] = p->GetSize();
+ 	m_lastPktTs[ifIndex] = Simulator::Now().GetTimeStep();
+ }
+diff --git a/simulation/src/point-to-point/model/switch-node.h b/simulation/src/point-to-point/model/switch-node.h
+index db59fba..d778961 100644
+--- a/simulation/src/point-to-point/model/switch-node.h
++++ b/simulation/src/point-to-point/model/switch-node.h
+@@ -51,6 +51,10 @@ public:
+ 	bool SwitchReceiveFromDevice(Ptr<NetDevice> device, Ptr<Packet> packet, CustomHeader &ch);
+ 	void SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Packet> p);
+ 
++	// LIMER telemetry: read-only accessor for the existing private
++	// m_txBytes counter (same value PrintSwitchBw already reads internally).
++	uint64_t GetLimerTxBytes(uint32_t ifIndex) const { return m_txBytes[ifIndex]; }
++
+ 	// for approximate calc in PINT
+ 	int logres_shift(int b, int l);
+ 	int log2apprx(int x, int b, int m, int l); // given x of at most b bits, use most significant m bits of x, calc the result in l bits
+@@ -69,6 +73,16 @@ public:
+ 	 * time, sw_id, port_id, txBytes
+ 	 */
+ 	void PrintSwitchBw(FILE* bw_output, uint32_t bw_mon_interval);
++
++	// LIMER telemetry counters (read-only from the outside; incremented at
++	// the same sites as the existing m_bytes/m_txBytes counters above).
++	// Cumulative, per egress port index. Do not reset during a run.
++	uint64_t m_limerTxPkts[pCnt] = {0};
++	uint64_t m_limerRxPkts[pCnt] = {0};
++	uint64_t m_limerDropPkts[pCnt] = {0};
++	uint64_t m_limerDropBytes[pCnt] = {0};
++	uint64_t m_limerEcnMarks[pCnt] = {0};
++	uint64_t m_limerPfcEvents[pCnt] = {0};
+ };
+ 
+ } /* namespace ns3 */
