@@ -8,7 +8,7 @@
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:#edf5ff;font:16px/1.5 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1380px;margin:auto;padding:24px 32px}header{display:flex;justify-content:space-between;align-items:center;gap:20px}.eyebrow{color:var(--a);letter-spacing:3px;font-size:12px}h1{font-size:27px;margin:5px 0}p{margin:5px 0}.muted{color:var(--muted)}.tag{border:1px solid #43566f;border-radius:20px;padding:7px 14px;white-space:nowrap;font-size:13px}.steps{display:flex;gap:8px;margin:20px 0}.steps button{flex:1}.active{background:#244a61!important;border-color:var(--a)!important}.grid{display:grid;grid-template-columns:1fr 330px;gap:18px}.panel{background:var(--panel);border:1px solid #24374e;border-radius:16px;padding:18px}.panel h2{font-size:16px;margin:0 0 12px}.network{width:100%;display:block}.stat{display:flex;justify-content:space-between;margin:10px 0}.big{font-size:28px;font-weight:650;font-variant-numeric:tabular-nums}.a{color:var(--a)}.b{color:var(--b)}.ratio{height:26px;display:flex;border-radius:6px;overflow:hidden;margin:10px 0}.ratio span{transition:width .15s;color:#08111f;font-size:12px;font-weight:bold;text-align:center;padding:4px 0}.formula{background:#091524;padding:12px;border-radius:9px;font:14px/1.8 ui-monospace,monospace}.decision{font-size:14px;min-height:100px;margin-top:10px}.caption{margin-top:18px;border-left:4px solid var(--a);padding:12px 18px;background:#11283a;min-height:94px}.caption strong{font-size:20px}.caption p{color:#c3d4e7}.controls{display:flex;gap:12px;align-items:center;margin-top:18px}button,select{font:inherit;color:inherit;background:#172b43;border:1px solid #3a526d;border-radius:8px;padding:8px 12px;cursor:pointer}button:hover{border-color:#c4ddff}button:focus-visible,input:focus-visible{outline:2px solid var(--a)}input{accent-color:var(--a);flex:1;min-width:60px}.footer{font-size:12px;color:var(--muted);margin-top:15px}.legend{display:flex;gap:20px;font-size:13px}.small{font-size:13px}summary{cursor:pointer}details{margin-top:12px}a{color:var(--b)}@media(max-width:1000px){.grid{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr;gap:20px}main{padding:16px}h1{font-size:25px}.steps{flex-wrap:wrap}.steps button{font-size:12px}.controls{flex-wrap:wrap}}
 </style>
 <main>
-<header><div><div class="eyebrow">LIMER / B8 · CHUNK-LEVEL FEEDBACK</div><h1>Adapt the next chunk. Keep communication moving.</h1><p class="muted">Completion feedback → Rate update → Byte credits → Next-chunk assignment</p></div><div class="tag">Concept animation · Not a trace replay</div></header>
+<header><div><div class="eyebrow">LIMER / B8 · CHUNK-LEVEL FEEDBACK</div><h1>Adapt the next chunk. Keep communication moving.</h1><p class="muted">Completion feedback → Rate update → Byte credits → Next-chunk assignment</p></div><div><button id="language" type="button" aria-label="Switch to Chinese">中文</button><div class="tag" style="margin-top:8px">Concept animation · Not a trace replay</div></div></header>
 <nav class="steps" aria-label="Animation stages"><button data-step="0">① Probe both rails</button><button data-step="1">② Split by feedback</button><button data-step="2">③ Rail B slows down</button><button data-step="3">④ Rebalance after ACK</button><button data-step="4">⑤ Completion & limits</button></nav>
 <div class="grid"><section class="panel"><h2>One GPU-to-GPU transfer <span class="muted small">/ a local view, not the full 16-GPU topology</span></h2>
 <svg class="network" viewBox="0 0 880 365" role="img" aria-label="A sender transmits fixed-size chunks on rails A and B. Completion ACKs update scheduling. After B slows down and feedback arrives, more subsequent chunks go to A.">
@@ -49,10 +49,80 @@ function build(){let time=0, rates=[0,0],credit=[0,0],assigned=[0,0],done=[0,0],
  credit=[...added];credit[r]-=SIZE;decision={id:packets.length+1,r,w,added,after:[...credit]};launch(r);}
  snap();}
  return {packets,states,firstSlow,duration:time+4,finish:time};}
+
+let language='en';
+const translations={
+  "Adapt the next chunk. Keep communication moving.": "不等整轮结束，让后续数据走得更快",
+  "Completion feedback → Rate update → Byte credits → Next-chunk assignment": "完成反馈 → 更新速率 → 累加额度 → 分配下一块",
+  "Concept animation · Not a trace replay": "原理动画 · 非实验日志回放",
+  "① Probe both rails": "① 双 rail 探测",
+  "② Split by feedback": "② 按速率分流",
+  "③ Rail B slows down": "③ B 线路减速",
+  "④ Rebalance after ACK": "④ 反馈后重分配",
+  "⑤ Completion & limits": "⑤ 完成与边界",
+  "One GPU-to-GPU transfer ": "一个 GPU 间传输任务的局部视图 ",
+  "/ a local view, not the full 16-GPU topology": "／不是完整 16-GPU 拓扑",
+  "Sender GPU": "发送 GPU",
+  "64 KiB per chunk": "固定 64 KiB / 块",
+  "Receiver GPU": "接收 GPU",
+  "Completion ACK": "完成 ACK 返回",
+  "updates the estimate": "才更新测速",
+  "Rail A · Healthy": "Rail A · 正常",
+  "Rail B · Healthy": "Rail B · 正常",
+  "Data →": "数据 →",
+  "■ A: data chunks": "■ A：数据块",
+  "■ B: data chunks": "■ B：数据块",
+  "◇ ACK: completion feedback": "◇ ACK：完成反馈",
+  "Latest feedback · No fault oracle": "最新完成反馈 · 不直接读取故障",
+  "A estimated rate": "A 估计速率",
+  "B estimated rate": "B 估计速率",
+  "KiB / demo second; not measured experiment throughput": "单位 KiB / 演示秒；非实验吞吐量",
+  "Next-chunk weights A : B": "后续分配权重 A : B",
+  "Probing": "探测中",
+  "r = chunk bytes / ACK latency": "r = chunk 字节数 / 完成耗时",
+  "Most recent credit decision": "最新一次 chunk 额度决策",
+  "Choose the higher-credit rail": "选择 credit 较大的 rail",
+  "credit_selected -= 64 KiB": "credit所选 -= 64 KiB",
+  "Credits may be negative and carry over. Weights control assigned bytes, not the instantaneous in-flight split.": "额度可为负；余额保留。比例控制后续字节分配，不强制在途数量配比。",
+  "▶ Play": "▶ 播放",
+  "↺ Restart": "↺ 重播",
+  "Fullscreen": "全屏",
+  "Illustration: 96 equal-sized chunks, one sender/receiver pair, at most 8 chunks in flight. Motion and timing are simplified; switch queues, shared contention and full AllReduce dependencies are not modeled. Demo seconds ≠ simulation milliseconds. Space: play/pause. ← →: seek.": "原理示意：96 个等大 chunk、单个发送/接收对、最多 8 个在途 chunk。线路运动与时间经过简化，不模拟交换机排队、共享竞争或完整 AllReduce 依赖。演示秒 ≠ 仿真毫秒。空格播放/暂停，← → 跳转。",
+  "Presenter notes and implementation basis": "讲解提示与代码依据",
+  "Efficiency improves by assigning less subsequent data to the slow rail—not by repairing a link or migrating in-flight data. A hard disconnect with no completion feedback requires additional recovery mechanisms.": "改善来自减少后续数据进入慢线路，不是修好链路，也不迁移已经发送的数据。完全断开且没有完成反馈时，本机制不足以完成恢复。",
+  "Initially, only two chunks are launched. The first completion on either rail permits up to eight active chunks; the sender does not wait for both probes. A rail without a completed sample temporarily has zero estimated-rate weight.": "初始只启动两块；任一 rail 首次返回完成反馈后即可扩展到 8 块，无需等慢 rail。未得到首个完成样本的 rail 暂不获得新的测速权重。",
+  "Implementation basis: ": "代码依据：",
+  "limer_split_policy.h / ChunkComplete, Select": "limer_split_policy.h / ChunkComplete、Select",
+  "; ": "；",
+  ". This is a conceptual teaching aid; review before formal presentation.": "。这是讲解草稿，正式报告前请人工核对。"
+};
+const staticTexts=[];
+const textWalker=document.createTreeWalker(document.querySelector('main'),NodeFilter.SHOW_TEXT);
+while(textWalker.nextNode()){
+ const node=textWalker.currentNode;
+ if(Object.prototype.hasOwnProperty.call(translations,node.nodeValue))
+   staticTexts.push({node,en:node.nodeValue,zh:translations[node.nodeValue]});
+}
+const ariaTranslations={"Animation stages":"动画阶段","A sender transmits fixed-size chunks on rails A and B. Completion ACKs update scheduling. After B slows down and feedback arrives, more subsequent chunks go to A.":"发送GPU通过A和B两条rail发送固定大小的chunk，返回ACK后更新调度。减速后B上的chunk耗时增加，后续更多chunk分配到A。","Animation progress":"动画进度","Playback speed":"播放速度"};
+const ariaNodes=Array.from(document.querySelectorAll('[aria-label]')).map(node=>({node,en:node.getAttribute('aria-label')}));
+const label=(en,zh)=>language==='zh'?zh:en;
+function setLanguage(next){
+ language=next==='zh'?'zh':'en';
+ document.documentElement.lang=language==='zh'?'zh-CN':'en';
+ document.title=label('LIMER · Continuous Chunk-Feedback Splitting','LIMER · 持续 chunk 反馈分流');
+ for(const item of staticTexts)item.node.nodeValue=item[language];
+ for(const item of ariaNodes)item.node.setAttribute('aria-label',language==='zh'?(ariaTranslations[item.en]||item.en):item.en);
+ $('language').textContent=label('中文','English');
+ $('language').setAttribute('aria-label',label('Switch to Chinese','切换为英文'));
+ $('play').textContent=playing?label('Ⅱ Pause','Ⅱ 暂停'):current>=model.duration?label('↺ Replay','↺ 再播放'):label('▶ Play','▶ 播放');
+ draw(current);
+}
+function draw(t){return language==='zh'?drawZh(t):drawEn(t);}
+
 const model=build(),$=id=>document.getElementById(id);let current=0,playing=false,last=null;
 const cues=[0,BASE+ACK+.1,FAULT+.1,model.firstSlow+.1,model.finish+.1];
 function phase(t){return t>=model.finish?4:t>=model.firstSlow?3:t>=FAULT?2:t>=BASE+ACK?1:0;}
-function draw(t){const s=model.states.reduce((a,b)=>b.time<=t?b:a,model.states[0]), stage=phase(t),sum=s.rates[0]+s.rates[1],w=sum?s.rates.map(v=>v/sum):[.5,.5];
+function drawEn(t){const s=model.states.reduce((a,b)=>b.time<=t?b:a,model.states[0]), stage=phase(t),sum=s.rates[0]+s.rates[1],w=sum?s.rates.map(v=>v/sum):[.5,.5];
  document.querySelectorAll('[data-step]').forEach((el,i)=>el.classList.toggle('active',i===stage));
  $('pending').textContent=`Pending: ${TOTAL-s.assigned[0]-s.assigned[1]}`;$('received').textContent=`ACKed: ${s.done[0]+s.done[1]} / ${TOTAL}`;
  $('inflight').textContent=`In flight: ${s.assigned[0]+s.assigned[1]-s.done[0]-s.done[1]} / 8`;
@@ -68,13 +138,30 @@ function draw(t){const s=model.states.reduce((a,b)=>b.time<=t?b:a,model.states[0
  $('decision').innerHTML=d?`chunk #${d.id} → <b class="${d.r?'b':'a'}">Rail ${d.r?'B':'A'}</b><br>After accrual: A ${d.added[0].toFixed(1)} / B ${d.added[1].toFixed(1)} KiB<br>After debit: A ${d.after[0].toFixed(1)} / B ${d.after[1].toFixed(1)} KiB`:'One initial probe per rail.<br>Ordinary completion ACKs provide rate feedback.';
  const messages=[['Probe early; do not wait for the entire transfer','Launch one equal-sized chunk on each rail. The first completion ACK allows additional chunks to fill the available slots.'],['Every completion updates the next assignment','Estimate rate from chunk size / first-TX-to-completion-ACK time. Accrue credits using the latest rates; the higher-credit rail gets the next chunk.'],['The slowdown happens first. Feedback arrives later.','Data on B slows down, but the scheduler retains its previous estimate until a slower completion sample arrives. It cannot read the fault schedule.'],['Shift subsequent data without waiting for a timeout','A slower completion ACK lowers the estimate for B. Subsequent credits favor A. Existing B chunks are not migrated and may still cause a tail.'],['Recover some efficiency—not full fault recovery','The transfer ends only after every chunk is ACKed. This demonstrates adaptation to partial slowdowns, not hard-failure recovery or full AllReduce numerical correctness.']];
  $('heading').textContent=messages[stage][0];$('narration').textContent=messages[stage][1];$('seek').value=t/model.duration*1000;$('clock').textContent=`${t.toFixed(1)} / ${model.duration.toFixed(1)} demo s`;}
-function toggle(){if(current>=model.duration)current=0;playing=!playing;$('play').textContent=playing?'Ⅱ Pause':'▶ Play';}
-$('play').onclick=toggle;$('reset').onclick=()=>{current=0;playing=true;$('play').textContent='Ⅱ Pause';draw(current);};
+function drawZh(t){const s=model.states.reduce((a,b)=>b.time<=t?b:a,model.states[0]), stage=phase(t),sum=s.rates[0]+s.rates[1],w=sum?s.rates.map(v=>v/sum):[.5,.5];
+ document.querySelectorAll('[data-step]').forEach((el,i)=>el.classList.toggle('active',i===stage));
+ $('pending').textContent=`待分配 ${TOTAL-s.assigned[0]-s.assigned[1]} 块`;$('received').textContent=`已确认 ${s.done[0]+s.done[1]} / ${TOTAL}`;
+ $('inflight').textContent=`在途 ${s.assigned[0]+s.assigned[1]-s.done[0]-s.done[1]} / 8`;
+ for(let r=0;r<2;r++){const n=r?'B':'A';$('rate'+n).textContent=s.rates[r]?s.rates[r].toFixed(1):'等待 ACK';$('assigned'+n).textContent=`${n} 累计分配 ${s.assigned[r]} 块 · 已确认 ${s.done[r]} 块`;$('bar'+n).style.width=100*w[r]+'%';}
+ $('weights').textContent=sum?`${(w[0]*100).toFixed(0)}% : ${(w[1]*100).toFixed(0)}%`:'等待首个反馈';
+ $('bLabel').textContent=t>=FAULT?'Rail B · 服务变慢，仍然可用':'Rail B · 正常';$('bLabel').setAttribute('fill',t>=FAULT?'#ffbf69':'#8babff');$('railB').setAttribute('stroke',t>=FAULT?'#ffbf69':'#8babff');
+ $('faultNote').textContent=stage===2?'B 已变慢 ≠ 调度器已收到慢速反馈':stage===3?'新分配偏向 A；在途 B 数据仍等待完成':'';
+ let shapes='';for(const p of model.packets){if(t<p.start||t>=p.end)continue;const isAck=t>=p.rx;let progress;
+ if(isAck)progress=1-(t-p.rx)/ACK;else if(p.r===0)progress=(t-p.start)/BASE;else progress=(Math.max(0,Math.min(t,FAULT)-p.start))/BASE+Math.max(0,t-Math.max(p.start,FAULT))/SLOW;
+ const x=205+Math.max(0,Math.min(1,progress))*470,y=(p.r?285:95)+(isAck?36:((p.id%3)-1)*17),color=p.r?'#8babff':'#58dfc6';
+ shapes+=isAck?`<path d="M${x} ${y-6}l7 6-7 6-7-6Z" fill="${color}"/>`:`<g><rect x="${x-16}" y="${y-10}" width="32" height="20" rx="4" fill="${color}"/><text x="${x}" y="${y+4}" text-anchor="middle" font-size="10" fill="#08111f">${p.id}</text></g>`;}
+ $('packets').innerHTML=shapes;const d=s.decision;
+ $('decision').innerHTML=d?`chunk #${d.id} → <b class="${d.r?'b':'a'}">Rail ${d.r?'B':'A'}</b><br>增加后：A ${d.added[0].toFixed(1)} / B ${d.added[1].toFixed(1)} KiB<br>扣除后：A ${d.after[0].toFixed(1)} / B ${d.after[1].toFixed(1)} KiB`:'首对探测各发一块。<br>正常传输的 ACK 就是后续测速信号。';
+ const messages=[['先探测，但不等待整个通信完成','在 A、B 各启动一个等大的 chunk。任一首个 ACK 返回后，即可继续补充后续 chunk。'],['每完成一块，就更新一次分配依据','完成速率 = 数据量 ÷ 首次发送到 ACK 完成耗时。按最新速率累加额度，额度大的 rail 获得下一块。'],['故障先发生，反馈后到达','B 上的数据移动变慢，但没有慢速完成样本前，调度器仍使用旧估计。动画不让调度器提前知道故障。'],['不等超时，让后续数据更多走快线路','慢速完成 ACK 已返回，B 的估计下降。后续额度偏向 A；原来在 B 上的 chunk 不迁移，仍可能产生拖尾。'],['恢复部分效率，不等于完成故障恢复','全部 chunk 的 ACK 到齐，本传输任务才结束。这里只演示灰色减速下的动态分流，不证明硬断链恢复或完整 AllReduce 正确性。']];
+ $('heading').textContent=messages[stage][0];$('narration').textContent=messages[stage][1];$('seek').value=t/model.duration*1000;$('clock').textContent=`${t.toFixed(1)} / ${model.duration.toFixed(1)} 演示秒`;}
+function toggle(){if(current>=model.duration)current=0;playing=!playing;$('play').textContent=playing?label('Ⅱ Pause','Ⅱ 暂停'):label('▶ Play','▶ 播放');}
+$('language').onclick=()=>setLanguage(language==='en'?'zh':'en');
+$('play').onclick=toggle;$('reset').onclick=()=>{current=0;playing=true;$('play').textContent=label('Ⅱ Pause','Ⅱ 暂停');draw(current);};
 $('seek').oninput=e=>{current=+e.target.value/1000*model.duration;draw(current);};document.querySelectorAll('[data-step]').forEach(el=>el.onclick=()=>{current=cues[+el.dataset.step];draw(current);});
-$('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(e){$('fullscreen').textContent='Use browser fullscreen';}};
+$('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(e){$('fullscreen').textContent=label('Use browser fullscreen','请用浏览器全屏');}};
 document.addEventListener('keydown',e=>{if(['INPUT','SELECT','BUTTON'].includes(e.target.tagName))return;if(e.code==='Space'){e.preventDefault();toggle();}if(e.code==='ArrowRight'||e.code==='ArrowLeft'){e.preventDefault();current=Math.max(0,Math.min(model.duration,current+(e.code==='ArrowRight'?2:-2)));draw(current);}});
-function frame(now){if(last!==null&&playing){current=Math.min(model.duration,current+(now-last)/1000*+$('speed').value);if(current>=model.duration){playing=false;$('play').textContent='↺ Replay';}draw(current);}last=now;requestAnimationFrame(frame);}draw(0);requestAnimationFrame(frame);
+function frame(now){if(last!==null&&playing){current=Math.min(model.duration,current+(now-last)/1000*+$('speed').value);if(current>=model.duration){playing=false;$('play').textContent=label('↺ Replay','↺ 再播放');}draw(current);}last=now;requestAnimationFrame(frame);}draw(0);requestAnimationFrame(frame);
 // Exposed for deterministic offline logic checks; not a simulator API.
-globalThis.chunkDemo={model,phase,arrival,draw};
+globalThis.chunkDemo={model,phase,arrival,draw,setLanguage,getState:()=>({current,playing,language})};
 </script>
 </html>

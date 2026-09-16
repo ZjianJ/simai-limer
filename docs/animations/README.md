@@ -4,6 +4,9 @@ Open `chunk_feedback.html` in a browser; no dependencies or network are required
 The GitHub Pages landing page embeds the same self-contained animation.
 Controls: Play/Pause, Restart, timeline, five chapter buttons, speed, fullscreen,
 Space and arrow keys. Runtime: approximately 52 demo seconds at 1x.
+Use the 中文 / English button at the top right to switch the entire animation,
+including captions, rate/credit readouts and accessibility labels. Switching
+preserves progress, playback state, speed and the underlying model.
 
 ## Scope and provenance
 
