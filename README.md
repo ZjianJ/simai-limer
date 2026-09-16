@@ -1,5 +1,12 @@
 # simai-limer
 
+## Interactive English demonstration
+
+[Open the B8 chunk-feedback animation](https://ZjianJ.github.io/simai-limer/)
+to see probing, feedback delay, rate updates, and weighted byte-credit splitting.
+The page is a conceptual teaching aid, not an experiment replay or a release of
+the latest simulator implementation. [Scope and validation](docs/animations/README.md).
+
 **LIMER Phase M1: Lightweight In-Network Monitoring for SimAI**, plus a
 dynamic randomized fault-injection extension for testing future detection
 algorithms.
