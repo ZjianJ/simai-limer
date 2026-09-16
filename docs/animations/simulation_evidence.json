@@ -1,0 +1,783 @@
+{
+  "experiment": "random_a8_b80_t1ms_20260908",
+  "config": {
+    "a": 8,
+    "b_max_percent": 80,
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "start_ns": 1000000,
+    "horizon_ns": 100000000,
+    "chunk_bytes": 65536,
+    "max_active": 8,
+    "sample_us": 1000,
+    "timeout": 180
+  },
+  "access_links": [
+    {
+      "link_id": "L0-24",
+      "src_node": "0",
+      "dst_node": "24",
+      "src_port": "3",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L0-20",
+      "src_node": "0",
+      "dst_node": "20",
+      "src_port": "2",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L1-25",
+      "src_node": "1",
+      "dst_node": "25",
+      "src_port": "3",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L1-21",
+      "src_node": "1",
+      "dst_node": "21",
+      "src_port": "2",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L2-26",
+      "src_node": "2",
+      "dst_node": "26",
+      "src_port": "3",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L2-22",
+      "src_node": "2",
+      "dst_node": "22",
+      "src_port": "2",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L3-27",
+      "src_node": "3",
+      "dst_node": "27",
+      "src_port": "3",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L3-23",
+      "src_node": "3",
+      "dst_node": "23",
+      "src_port": "2",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L4-24",
+      "src_node": "4",
+      "dst_node": "24",
+      "src_port": "3",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L4-20",
+      "src_node": "4",
+      "dst_node": "20",
+      "src_port": "2",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L5-25",
+      "src_node": "5",
+      "dst_node": "25",
+      "src_port": "3",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L5-21",
+      "src_node": "5",
+      "dst_node": "21",
+      "src_port": "2",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L6-26",
+      "src_node": "6",
+      "dst_node": "26",
+      "src_port": "3",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L6-22",
+      "src_node": "6",
+      "dst_node": "22",
+      "src_port": "2",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L7-27",
+      "src_node": "7",
+      "dst_node": "27",
+      "src_port": "3",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L7-23",
+      "src_node": "7",
+      "dst_node": "23",
+      "src_port": "2",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L8-24",
+      "src_node": "8",
+      "dst_node": "24",
+      "src_port": "3",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L8-20",
+      "src_node": "8",
+      "dst_node": "20",
+      "src_port": "2",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L9-25",
+      "src_node": "9",
+      "dst_node": "25",
+      "src_port": "3",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L9-21",
+      "src_node": "9",
+      "dst_node": "21",
+      "src_port": "2",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L10-26",
+      "src_node": "10",
+      "dst_node": "26",
+      "src_port": "3",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L10-22",
+      "src_node": "10",
+      "dst_node": "22",
+      "src_port": "2",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L11-27",
+      "src_node": "11",
+      "dst_node": "27",
+      "src_port": "3",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L11-23",
+      "src_node": "11",
+      "dst_node": "23",
+      "src_port": "2",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L12-24",
+      "src_node": "12",
+      "dst_node": "24",
+      "src_port": "3",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L12-20",
+      "src_node": "12",
+      "dst_node": "20",
+      "src_port": "2",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L13-25",
+      "src_node": "13",
+      "dst_node": "25",
+      "src_port": "3",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L13-21",
+      "src_node": "13",
+      "dst_node": "21",
+      "src_port": "2",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L14-26",
+      "src_node": "14",
+      "dst_node": "26",
+      "src_port": "3",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L14-22",
+      "src_node": "14",
+      "dst_node": "22",
+      "src_port": "2",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L15-27",
+      "src_node": "15",
+      "dst_node": "27",
+      "src_port": "3",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    },
+    {
+      "link_id": "L15-23",
+      "src_node": "15",
+      "dst_node": "23",
+      "src_port": "2",
+      "bandwidth_bps": "100000000000",
+      "delay_ns": "500"
+    }
+  ],
+  "seeds": {
+    "42": {
+      "schedule": [
+        {
+          "fault_id": "random-42-L0-20",
+          "fault_type": "service_degradation",
+          "target_link_id": "L0-20",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.5925341957341407,
+          "parameter_before": 1,
+          "parameter_after": 0.4074658042658593,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-42-L10-22",
+          "fault_type": "service_degradation",
+          "target_link_id": "L10-22",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.18612871471259168,
+          "parameter_before": 1,
+          "parameter_after": 0.8138712852874084,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-42-L11-27",
+          "fault_type": "service_degradation",
+          "target_link_id": "L11-27",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.081996140937206,
+          "parameter_before": 1,
+          "parameter_after": 0.918003859062794,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-42-L12-20",
+          "fault_type": "service_degradation",
+          "target_link_id": "L12-20",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.47239400995923175,
+          "parameter_before": 1,
+          "parameter_after": 0.5276059900407682,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-42-L5-25",
+          "fault_type": "service_degradation",
+          "target_link_id": "L5-25",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.43629322699867984,
+          "parameter_before": 1,
+          "parameter_after": 0.5637067730013201,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-42-L7-27",
+          "fault_type": "service_degradation",
+          "target_link_id": "L7-27",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.07495619188927397,
+          "parameter_before": 1,
+          "parameter_after": 0.9250438081107261,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-42-L8-24",
+          "fault_type": "service_degradation",
+          "target_link_id": "L8-24",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.4816149832399843,
+          "parameter_before": 1,
+          "parameter_after": 0.5183850167600157,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-42-L9-25",
+          "fault_type": "service_degradation",
+          "target_link_id": "L9-25",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.025426143585426875,
+          "parameter_before": 1,
+          "parameter_after": 0.9745738564145732,
+          "recovery_delay_ns": 0
+        }
+      ],
+      "fault_sha256": "cb64b58ea2c2fd75ab113181ebf09daf0305393a2ad801a1ab2431e5acb817f0",
+      "results": {
+        "B0": {
+          "pass": true,
+          "workload_finish_ns": 4173781,
+          "acked_payload_bytes": [
+            0,
+            503316480
+          ],
+          "fault_application_exact": true
+        },
+        "B1": {
+          "pass": true,
+          "workload_finish_ns": 2021495,
+          "acked_payload_bytes": [
+            251658240,
+            251658240
+          ],
+          "fault_application_exact": true
+        },
+        "B2": {
+          "pass": true,
+          "workload_finish_ns": 1995497,
+          "acked_payload_bytes": [
+            251854848,
+            251461632
+          ],
+          "fault_application_exact": true
+        },
+        "B3": {
+          "pass": true,
+          "workload_finish_ns": 1735363,
+          "acked_payload_bytes": [
+            250478592,
+            252837888
+          ],
+          "fault_application_exact": true
+        },
+        "B4": {
+          "pass": true,
+          "workload_finish_ns": 1830600,
+          "acked_payload_bytes": [
+            249888768,
+            253427712
+          ],
+          "fault_application_exact": true
+        },
+        "B6": {
+          "pass": true,
+          "workload_finish_ns": 1964804,
+          "acked_payload_bytes": [
+            254476288,
+            248840192
+          ],
+          "fault_application_exact": true
+        },
+        "B7": {
+          "pass": true,
+          "workload_finish_ns": 1968565,
+          "acked_payload_bytes": [
+            251789312,
+            251527168
+          ],
+          "fault_application_exact": true
+        },
+        "B8": {
+          "pass": true,
+          "workload_finish_ns": 1762931,
+          "acked_payload_bytes": [
+            250150912,
+            253165568
+          ],
+          "fault_application_exact": true
+        }
+      }
+    },
+    "43": {
+      "schedule": [
+        {
+          "fault_id": "random-43-L1-21",
+          "fault_type": "service_degradation",
+          "target_link_id": "L1-21",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.5587509023723082,
+          "parameter_before": 1,
+          "parameter_after": 0.4412490976276918,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-43-L10-22",
+          "fault_type": "service_degradation",
+          "target_link_id": "L10-22",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.4112628306888868,
+          "parameter_before": 1,
+          "parameter_after": 0.5887371693111132,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-43-L12-24",
+          "fault_type": "service_degradation",
+          "target_link_id": "L12-24",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.0770275321792914,
+          "parameter_before": 1,
+          "parameter_after": 0.9229724678207086,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-43-L13-25",
+          "fault_type": "service_degradation",
+          "target_link_id": "L13-25",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.4996079197662391,
+          "parameter_before": 1,
+          "parameter_after": 0.5003920802337609,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-43-L15-23",
+          "fault_type": "service_degradation",
+          "target_link_id": "L15-23",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.46129616720899747,
+          "parameter_before": 1,
+          "parameter_after": 0.5387038327910025,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-43-L4-24",
+          "fault_type": "service_degradation",
+          "target_link_id": "L4-24",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.7576813491999144,
+          "parameter_before": 1,
+          "parameter_after": 0.24231865080008563,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-43-L5-21",
+          "fault_type": "service_degradation",
+          "target_link_id": "L5-21",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.47904635964794295,
+          "parameter_before": 1,
+          "parameter_after": 0.520953640352057,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-43-L6-22",
+          "fault_type": "service_degradation",
+          "target_link_id": "L6-22",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.48719066988919435,
+          "parameter_before": 1,
+          "parameter_after": 0.5128093301108057,
+          "recovery_delay_ns": 0
+        }
+      ],
+      "fault_sha256": "ee5414df04a7ca2bd338d7254277612555ba2a03f073550af31778038853148a",
+      "results": {
+        "B0": {
+          "pass": true,
+          "workload_finish_ns": 7880190,
+          "acked_payload_bytes": [
+            0,
+            503316480
+          ],
+          "fault_application_exact": true
+        },
+        "B1": {
+          "pass": true,
+          "workload_finish_ns": 2600322,
+          "acked_payload_bytes": [
+            251658240,
+            251658240
+          ],
+          "fault_application_exact": true
+        },
+        "B2": {
+          "pass": true,
+          "workload_finish_ns": 2720736,
+          "acked_payload_bytes": [
+            251854848,
+            251461632
+          ],
+          "fault_application_exact": true
+        },
+        "B3": {
+          "pass": true,
+          "workload_finish_ns": 1770558,
+          "acked_payload_bytes": [
+            250347520,
+            252968960
+          ],
+          "fault_application_exact": true
+        },
+        "B4": {
+          "pass": true,
+          "workload_finish_ns": 1712237,
+          "acked_payload_bytes": [
+            248840192,
+            254476288
+          ],
+          "fault_application_exact": true
+        },
+        "B6": {
+          "pass": true,
+          "workload_finish_ns": 2119297,
+          "acked_payload_bytes": [
+            252575744,
+            250740736
+          ],
+          "fault_application_exact": true
+        },
+        "B7": {
+          "pass": true,
+          "workload_finish_ns": 2707327,
+          "acked_payload_bytes": [
+            251789312,
+            251527168
+          ],
+          "fault_application_exact": true
+        },
+        "B8": {
+          "pass": true,
+          "workload_finish_ns": 1862161,
+          "acked_payload_bytes": [
+            249757696,
+            253558784
+          ],
+          "fault_application_exact": true
+        }
+      }
+    },
+    "44": {
+      "schedule": [
+        {
+          "fault_id": "random-44-L1-25",
+          "fault_type": "service_degradation",
+          "target_link_id": "L1-25",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.41097056680214056,
+          "parameter_before": 1,
+          "parameter_after": 0.5890294331978594,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-44-L10-26",
+          "fault_type": "service_degradation",
+          "target_link_id": "L10-26",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.7915943283020409,
+          "parameter_before": 1,
+          "parameter_after": 0.2084056716979591,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-44-L14-22",
+          "fault_type": "service_degradation",
+          "target_link_id": "L14-22",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.5548082091451505,
+          "parameter_before": 1,
+          "parameter_after": 0.4451917908548495,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-44-L2-22",
+          "fault_type": "service_degradation",
+          "target_link_id": "L2-22",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.023277802614488863,
+          "parameter_before": 1,
+          "parameter_after": 0.9767221973855111,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-44-L2-26",
+          "fault_type": "service_degradation",
+          "target_link_id": "L2-26",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.09332042675429104,
+          "parameter_before": 1,
+          "parameter_after": 0.9066795732457089,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-44-L5-21",
+          "fault_type": "service_degradation",
+          "target_link_id": "L5-21",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.007044500709653523,
+          "parameter_before": 1,
+          "parameter_after": 0.9929554992903464,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-44-L7-23",
+          "fault_type": "service_degradation",
+          "target_link_id": "L7-23",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.18012761646251738,
+          "parameter_before": 1,
+          "parameter_after": 0.8198723835374826,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-44-L7-27",
+          "fault_type": "service_degradation",
+          "target_link_id": "L7-27",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.12535226806669106,
+          "parameter_before": 1,
+          "parameter_after": 0.8746477319333089,
+          "recovery_delay_ns": 0
+        }
+      ],
+      "fault_sha256": "817f97d21c1f4cee4823b95dd47d8d62ac21667c87f1b66654315a9f6b66ad78",
+      "results": {
+        "B0": {
+          "pass": true,
+          "workload_finish_ns": 8817929,
+          "acked_payload_bytes": [
+            0,
+            503316480
+          ],
+          "fault_application_exact": true
+        },
+        "B1": {
+          "pass": true,
+          "workload_finish_ns": 2821232,
+          "acked_payload_bytes": [
+            251658240,
+            251658240
+          ],
+          "fault_application_exact": true
+        },
+        "B2": {
+          "pass": true,
+          "workload_finish_ns": 2780079,
+          "acked_payload_bytes": [
+            251854848,
+            251461632
+          ],
+          "fault_application_exact": true
+        },
+        "B3": {
+          "pass": true,
+          "workload_finish_ns": 1714770,
+          "acked_payload_bytes": [
+            255918080,
+            247398400
+          ],
+          "fault_application_exact": true
+        },
+        "B4": {
+          "pass": true,
+          "workload_finish_ns": 1748550,
+          "acked_payload_bytes": [
+            256049152,
+            247267328
+          ],
+          "fault_application_exact": true
+        },
+        "B6": {
+          "pass": true,
+          "workload_finish_ns": 2127016,
+          "acked_payload_bytes": [
+            260177920,
+            243138560
+          ],
+          "fault_application_exact": true
+        },
+        "B7": {
+          "pass": true,
+          "workload_finish_ns": 2934401,
+          "acked_payload_bytes": [
+            251789312,
+            251527168
+          ],
+          "fault_application_exact": true
+        },
+        "B8": {
+          "pass": true,
+          "workload_finish_ns": 2043671,
+          "acked_payload_bytes": [
+            255000576,
+            248315904
+          ],
+          "fault_application_exact": true
+        }
+      }
+    }
+  },
+  "summary_sha256": "07ab25b198b226e6072173220da278ea230be8441458f34b700821707c84ecaa",
+  "topology_sha256": "c0b59d59b9f02a468601b8d20e186936262323318b39d8216d0a31841ba52fac",
+  "pass": true,
+  "same_payload": true
+}

@@ -1,5 +1,9 @@
 # Continuous chunk-feedback animation (English)
 
+Also available: [simulation setup and workflow animation](simulation_workflow.html),
+with 16-GPU topology, frozen configuration, three recorded fault seeds, comparison
+times and evidence checks. See [its provenance notes](simulation_workflow.md).
+
 Open `chunk_feedback.html` in a browser; no dependencies or network are required.
 The GitHub Pages landing page embeds the same self-contained animation.
 Controls: Play/Pause, Restart, timeline, five chapter buttons, speed, fullscreen,
