@@ -1,0 +1,2205 @@
+{
+  "parameters": {
+    "binary": "/home/u6ow/zijian.u6ow/limer-simai/SimAI/ns-3-alibabacloud/simulation/build/scratch/ns3.36.1-AstraSimNetwork-debug",
+    "topology": "/home/u6ow/zijian.u6ow/limer-simai/SimAI/limer/results/true16_hard_fault_e2e/topology/Spectrum-X_16g_4gps_DualToR_DualPlane_100Gbps_A100",
+    "link_map": "/home/u6ow/zijian.u6ow/limer-simai/SimAI/limer/results/split_baselines/healthy_smoke_single_worker_20260908/B0/link_map.csv",
+    "out": "/home/u6ow/zijian.u6ow/limer-simai/SimAI/limer/results/split_baselines/random_a8_b80_t1ms_20260908",
+    "a": 8,
+    "b_max_percent": 80,
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "start_ns": 1000000,
+    "horizon_ns": 100000000,
+    "workload": "/home/u6ow/zijian.u6ow/limer-simai/SimAI/limer/configs/microAllReduce_16rank_split_64mib.txt",
+    "config": "/home/u6ow/zijian.u6ow/limer-simai/SimAI/limer/configs/SimAI.baseline.conf",
+    "chunk_bytes": 65536,
+    "max_active": 8,
+    "sample_us": 1000,
+    "timeout": 180
+  },
+  "scope": "true16_chunk_qp_split",
+  "tensor_numeric_correctness": "not simulated",
+  "oracle_scope": "piecewise independent single-rail workload-conditioned goodput; not exact instantaneous capacity",
+  "seeds": {
+    "42": {
+      "schedule": [
+        {
+          "fault_id": "random-42-L0-20",
+          "fault_type": "service_degradation",
+          "target_link_id": "L0-20",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.5925341957341407,
+          "parameter_before": 1,
+          "parameter_after": 0.4074658042658593,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-42-L10-22",
+          "fault_type": "service_degradation",
+          "target_link_id": "L10-22",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.18612871471259168,
+          "parameter_before": 1,
+          "parameter_after": 0.8138712852874084,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-42-L11-27",
+          "fault_type": "service_degradation",
+          "target_link_id": "L11-27",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.081996140937206,
+          "parameter_before": 1,
+          "parameter_after": 0.918003859062794,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-42-L12-20",
+          "fault_type": "service_degradation",
+          "target_link_id": "L12-20",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.47239400995923175,
+          "parameter_before": 1,
+          "parameter_after": 0.5276059900407682,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-42-L5-25",
+          "fault_type": "service_degradation",
+          "target_link_id": "L5-25",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.43629322699867984,
+          "parameter_before": 1,
+          "parameter_after": 0.5637067730013201,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-42-L7-27",
+          "fault_type": "service_degradation",
+          "target_link_id": "L7-27",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.07495619188927397,
+          "parameter_before": 1,
+          "parameter_after": 0.9250438081107261,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-42-L8-24",
+          "fault_type": "service_degradation",
+          "target_link_id": "L8-24",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.4816149832399843,
+          "parameter_before": 1,
+          "parameter_after": 0.5183850167600157,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-42-L9-25",
+          "fault_type": "service_degradation",
+          "target_link_id": "L9-25",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.025426143585426875,
+          "parameter_before": 1,
+          "parameter_after": 0.9745738564145732,
+          "recovery_delay_ns": 0
+        }
+      ],
+      "fault_sha256": "cb64b58ea2c2fd75ab113181ebf09daf0305393a2ad801a1ab2431e5acb817f0",
+      "results": {
+        "B0": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            0,
+            503316480
+          ],
+          "acked_payload_bytes": [
+            0,
+            503316480
+          ],
+          "transport_span_ns": 4169765,
+          "workload_finish_ns": 4173781,
+          "informative_samples": 22,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B1": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            251658240,
+            251658240
+          ],
+          "acked_payload_bytes": [
+            251658240,
+            251658240
+          ],
+          "transport_span_ns": 2017479,
+          "workload_finish_ns": 2021495,
+          "informative_samples": 0,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B2": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            251854848,
+            251461632
+          ],
+          "acked_payload_bytes": [
+            251854848,
+            251461632
+          ],
+          "transport_span_ns": 1991481,
+          "workload_finish_ns": 1995497,
+          "informative_samples": 0,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B3": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            250478592,
+            252837888
+          ],
+          "acked_payload_bytes": [
+            250478592,
+            252837888
+          ],
+          "transport_span_ns": 1731347,
+          "workload_finish_ns": 1735363,
+          "informative_samples": 0,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B4": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            249888768,
+            253427712
+          ],
+          "acked_payload_bytes": [
+            249888768,
+            253427712
+          ],
+          "transport_span_ns": 1826584,
+          "workload_finish_ns": 1830600,
+          "informative_samples": 0,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B6": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            254476288,
+            248840192
+          ],
+          "acked_payload_bytes": [
+            254476288,
+            248840192
+          ],
+          "transport_span_ns": 1960788,
+          "workload_finish_ns": 1964804,
+          "informative_samples": 0,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B7": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": {
+            "pass": true,
+            "probes": [
+              {
+                "src": 0,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5040363028421304
+              },
+              {
+                "src": 1,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 2,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 3,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 4,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5037475533489283
+              },
+              {
+                "src": 5,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 6,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 7,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 8,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 9,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 10,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 11,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 12,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 13,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 14,
+                "bytes": 65536,
+                "A_elapsed_ns": 10576,
+                "B_elapsed_ns": 10371,
+                "A_weight": 0.49510669785649497
+              },
+              {
+                "src": 15,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              }
+            ],
+            "completion_samples": 7680
+          },
+          "assigned_bytes": [
+            251789312,
+            251527168
+          ],
+          "acked_payload_bytes": [
+            251789312,
+            251527168
+          ],
+          "transport_span_ns": 1964549,
+          "workload_finish_ns": 1968565,
+          "informative_samples": 0,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B8": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": {
+            "pass": true,
+            "probes": [
+              {
+                "src": 0,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5040363028421304
+              },
+              {
+                "src": 1,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 2,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 3,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 4,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5037475533489283
+              },
+              {
+                "src": 5,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 6,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 7,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 8,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 9,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 10,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 11,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 12,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 13,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 14,
+                "bytes": 65536,
+                "A_elapsed_ns": 10576,
+                "B_elapsed_ns": 10371,
+                "A_weight": 0.49510669785649497
+              },
+              {
+                "src": 15,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              }
+            ],
+            "completion_samples": 7680
+          },
+          "assigned_bytes": [
+            250150912,
+            253165568
+          ],
+          "acked_payload_bytes": [
+            250150912,
+            253165568
+          ],
+          "transport_span_ns": 1758915,
+          "workload_finish_ns": 1762931,
+          "informative_samples": 0,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        }
+      },
+      "calibration": {
+        "calibration_0": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            503316480,
+            0
+          ],
+          "acked_payload_bytes": [
+            503316480,
+            0
+          ],
+          "transport_span_ns": 6473231,
+          "workload_finish_ns": 6477247,
+          "informative_samples": 27,
+          "tensor_numeric_correctness": "not simulated"
+        },
+        "calibration_1": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            0,
+            503316480
+          ],
+          "acked_payload_bytes": [
+            0,
+            503316480
+          ],
+          "transport_span_ns": 5098657,
+          "workload_finish_ns": 5102673,
+          "informative_samples": 20,
+          "tensor_numeric_correctness": "not simulated"
+        }
+      },
+      "B5": {
+        "full_allreduce_bound": false,
+        "scope": "conditional independent-pair fluid relaxation",
+        "pairs": [
+          {
+            "src": 0,
+            "dst": 5,
+            "finish_ns": 1703925.0511482777,
+            "duration_ns": 1703925.0511482777,
+            "rail_bytes": [
+              14944514.23122394,
+              16512765.768776063
+            ],
+            "reachable": true
+          },
+          {
+            "src": 1,
+            "dst": 6,
+            "finish_ns": 1356310.0058866213,
+            "duration_ns": 1356310.0058866213,
+            "rail_bytes": [
+              15773142.920843715,
+              15684137.079156287
+            ],
+            "reachable": true
+          },
+          {
+            "src": 2,
+            "dst": 7,
+            "finish_ns": 1357085.261192254,
+            "duration_ns": 1357085.261192254,
+            "rail_bytes": [
+              15809232.692433253,
+              15648047.307566747
+            ],
+            "reachable": true
+          },
+          {
+            "src": 3,
+            "dst": 4,
+            "finish_ns": 1362455.7354541188,
+            "duration_ns": 1362455.7354541188,
+            "rail_bytes": [
+              15670844.209460273,
+              15786435.790539727
+            ],
+            "reachable": true
+          },
+          {
+            "src": 4,
+            "dst": 9,
+            "finish_ns": 1370215.148250178,
+            "duration_ns": 1370215.148250178,
+            "rail_bytes": [
+              15806822.366137264,
+              15650457.633862734
+            ],
+            "reachable": true
+          },
+          {
+            "src": 5,
+            "dst": 10,
+            "finish_ns": 1509220.2648276165,
+            "duration_ns": 1509220.2648276165,
+            "rail_bytes": [
+              16549592.0694403,
+              14907687.930559698
+            ],
+            "reachable": true
+          },
+          {
+            "src": 6,
+            "dst": 11,
+            "finish_ns": 1369747.47085243,
+            "duration_ns": 1369747.47085243,
+            "rail_bytes": [
+              15853300.912303787,
+              15603979.087696215
+            ],
+            "reachable": true
+          },
+          {
+            "src": 7,
+            "dst": 8,
+            "finish_ns": 1480720.9693841394,
+            "duration_ns": 1480720.9693841394,
+            "rail_bytes": [
+              16976142.682104208,
+              14481137.317895794
+            ],
+            "reachable": true
+          },
+          {
+            "src": 8,
+            "dst": 13,
+            "finish_ns": 1472453.9538847608,
+            "duration_ns": 1472453.9538847608,
+            "rail_bytes": [
+              16890482.957701694,
+              14566797.04229831
+            ],
+            "reachable": true
+          },
+          {
+            "src": 9,
+            "dst": 14,
+            "finish_ns": 1368971.887440043,
+            "duration_ns": 1368971.887440043,
+            "rail_bytes": [
+              15887113.655316696,
+              15570166.344683304
+            ],
+            "reachable": true
+          },
+          {
+            "src": 10,
+            "dst": 15,
+            "finish_ns": 1388076.6257929006,
+            "duration_ns": 1388076.6257929006,
+            "rail_bytes": [
+              15382056.86901097,
+              16075223.13098903
+            ],
+            "reachable": true
+          },
+          {
+            "src": 11,
+            "dst": 12,
+            "finish_ns": 1496092.613113489,
+            "duration_ns": 1496092.613113489,
+            "rail_bytes": [
+              14765570.632109357,
+              16691709.367890641
+            ],
+            "reachable": true
+          },
+          {
+            "src": 12,
+            "dst": 1,
+            "finish_ns": 1479640.4965999373,
+            "duration_ns": 1479640.4965999373,
+            "rail_bytes": [
+              14524227.871652966,
+              16933052.128347035
+            ],
+            "reachable": true
+          },
+          {
+            "src": 13,
+            "dst": 2,
+            "finish_ns": 1361055.9357374862,
+            "duration_ns": 1361055.9357374862,
+            "rail_bytes": [
+              15765953.608636811,
+              15691326.391363187
+            ],
+            "reachable": true
+          },
+          {
+            "src": 14,
+            "dst": 3,
+            "finish_ns": 1356810.6218223353,
+            "duration_ns": 1356810.6218223353,
+            "rail_bytes": [
+              15699984.497290548,
+              15757295.502709452
+            ],
+            "reachable": true
+          },
+          {
+            "src": 15,
+            "dst": 0,
+            "finish_ns": 1502825.2306196927,
+            "duration_ns": 1502825.2306196927,
+            "rail_bytes": [
+              14143036.940040067,
+              17314243.059959933
+            ],
+            "reachable": true
+          }
+        ]
+      }
+    },
+    "43": {
+      "schedule": [
+        {
+          "fault_id": "random-43-L1-21",
+          "fault_type": "service_degradation",
+          "target_link_id": "L1-21",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.5587509023723082,
+          "parameter_before": 1,
+          "parameter_after": 0.4412490976276918,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-43-L10-22",
+          "fault_type": "service_degradation",
+          "target_link_id": "L10-22",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.4112628306888868,
+          "parameter_before": 1,
+          "parameter_after": 0.5887371693111132,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-43-L12-24",
+          "fault_type": "service_degradation",
+          "target_link_id": "L12-24",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.0770275321792914,
+          "parameter_before": 1,
+          "parameter_after": 0.9229724678207086,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-43-L13-25",
+          "fault_type": "service_degradation",
+          "target_link_id": "L13-25",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.4996079197662391,
+          "parameter_before": 1,
+          "parameter_after": 0.5003920802337609,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-43-L15-23",
+          "fault_type": "service_degradation",
+          "target_link_id": "L15-23",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.46129616720899747,
+          "parameter_before": 1,
+          "parameter_after": 0.5387038327910025,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-43-L4-24",
+          "fault_type": "service_degradation",
+          "target_link_id": "L4-24",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.7576813491999144,
+          "parameter_before": 1,
+          "parameter_after": 0.24231865080008563,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-43-L5-21",
+          "fault_type": "service_degradation",
+          "target_link_id": "L5-21",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.47904635964794295,
+          "parameter_before": 1,
+          "parameter_after": 0.520953640352057,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-43-L6-22",
+          "fault_type": "service_degradation",
+          "target_link_id": "L6-22",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.48719066988919435,
+          "parameter_before": 1,
+          "parameter_after": 0.5128093301108057,
+          "recovery_delay_ns": 0
+        }
+      ],
+      "fault_sha256": "ee5414df04a7ca2bd338d7254277612555ba2a03f073550af31778038853148a",
+      "results": {
+        "B0": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            0,
+            503316480
+          ],
+          "acked_payload_bytes": [
+            0,
+            503316480
+          ],
+          "transport_span_ns": 7876174,
+          "workload_finish_ns": 7880190,
+          "informative_samples": 24,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B1": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            251658240,
+            251658240
+          ],
+          "acked_payload_bytes": [
+            251658240,
+            251658240
+          ],
+          "transport_span_ns": 2596306,
+          "workload_finish_ns": 2600322,
+          "informative_samples": 3,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B2": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            251854848,
+            251461632
+          ],
+          "acked_payload_bytes": [
+            251854848,
+            251461632
+          ],
+          "transport_span_ns": 2716720,
+          "workload_finish_ns": 2720736,
+          "informative_samples": 3,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B3": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            250347520,
+            252968960
+          ],
+          "acked_payload_bytes": [
+            250347520,
+            252968960
+          ],
+          "transport_span_ns": 1766542,
+          "workload_finish_ns": 1770558,
+          "informative_samples": 0,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B4": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            248840192,
+            254476288
+          ],
+          "acked_payload_bytes": [
+            248840192,
+            254476288
+          ],
+          "transport_span_ns": 1708221,
+          "workload_finish_ns": 1712237,
+          "informative_samples": 0,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B6": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            252575744,
+            250740736
+          ],
+          "acked_payload_bytes": [
+            252575744,
+            250740736
+          ],
+          "transport_span_ns": 2115281,
+          "workload_finish_ns": 2119297,
+          "informative_samples": 1,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B7": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": {
+            "pass": true,
+            "probes": [
+              {
+                "src": 0,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5040363028421304
+              },
+              {
+                "src": 1,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 2,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 3,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 4,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5037475533489283
+              },
+              {
+                "src": 5,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 6,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 7,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 8,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 9,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 10,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 11,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 12,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 13,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 14,
+                "bytes": 65536,
+                "A_elapsed_ns": 10576,
+                "B_elapsed_ns": 10371,
+                "A_weight": 0.49510669785649497
+              },
+              {
+                "src": 15,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              }
+            ],
+            "completion_samples": 7680
+          },
+          "assigned_bytes": [
+            251789312,
+            251527168
+          ],
+          "acked_payload_bytes": [
+            251789312,
+            251527168
+          ],
+          "transport_span_ns": 2703311,
+          "workload_finish_ns": 2707327,
+          "informative_samples": 5,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B8": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": {
+            "pass": true,
+            "probes": [
+              {
+                "src": 0,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5040363028421304
+              },
+              {
+                "src": 1,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 2,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 3,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 4,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5037475533489283
+              },
+              {
+                "src": 5,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 6,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 7,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 8,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 9,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 10,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 11,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 12,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 13,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 14,
+                "bytes": 65536,
+                "A_elapsed_ns": 10576,
+                "B_elapsed_ns": 10371,
+                "A_weight": 0.49510669785649497
+              },
+              {
+                "src": 15,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              }
+            ],
+            "completion_samples": 7680
+          },
+          "assigned_bytes": [
+            249757696,
+            253558784
+          ],
+          "acked_payload_bytes": [
+            249757696,
+            253558784
+          ],
+          "transport_span_ns": 1858145,
+          "workload_finish_ns": 1862161,
+          "informative_samples": 0,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        }
+      },
+      "calibration": {
+        "calibration_0": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            503316480,
+            0
+          ],
+          "acked_payload_bytes": [
+            503316480,
+            0
+          ],
+          "transport_span_ns": 5972920,
+          "workload_finish_ns": 5976936,
+          "informative_samples": 24,
+          "tensor_numeric_correctness": "not simulated"
+        },
+        "calibration_1": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            0,
+            503316480
+          ],
+          "acked_payload_bytes": [
+            0,
+            503316480
+          ],
+          "transport_span_ns": 10782540,
+          "workload_finish_ns": 10786556,
+          "informative_samples": 27,
+          "tensor_numeric_correctness": "not simulated"
+        }
+      },
+      "B5": {
+        "full_allreduce_bound": false,
+        "scope": "conditional independent-pair fluid relaxation",
+        "pairs": [
+          {
+            "src": 0,
+            "dst": 5,
+            "finish_ns": 1474486.3076437034,
+            "duration_ns": 1474486.3076437034,
+            "rail_bytes": [
+              14514068.244720694,
+              16943211.75527931
+            ],
+            "reachable": true
+          },
+          {
+            "src": 1,
+            "dst": 6,
+            "finish_ns": 1503275.1425163366,
+            "duration_ns": 1503275.1425163366,
+            "rail_bytes": [
+              14262397.369411172,
+              17194882.63058883
+            ],
+            "reachable": true
+          },
+          {
+            "src": 2,
+            "dst": 7,
+            "finish_ns": 1351016.029469942,
+            "duration_ns": 1351016.029469942,
+            "rail_bytes": [
+              15614431.19699415,
+              15842848.803005852
+            ],
+            "reachable": true
+          },
+          {
+            "src": 3,
+            "dst": 4,
+            "finish_ns": 1577932.4937634012,
+            "duration_ns": 1577932.4937634012,
+            "rail_bytes": [
+              18064778.28318921,
+              13392501.716810789
+            ],
+            "reachable": true
+          },
+          {
+            "src": 4,
+            "dst": 9,
+            "finish_ns": 1581920.6100470135,
+            "duration_ns": 1581920.6100470135,
+            "rail_bytes": [
+              18152298.84666145,
+              13304981.153338552
+            ],
+            "reachable": true
+          },
+          {
+            "src": 5,
+            "dst": 10,
+            "finish_ns": 1491647.5651700296,
+            "duration_ns": 1491647.5651700296,
+            "rail_bytes": [
+              14463427.1517779,
+              16993852.8482221
+            ],
+            "reachable": true
+          },
+          {
+            "src": 6,
+            "dst": 11,
+            "finish_ns": 1468342.6159013328,
+            "duration_ns": 1468342.6159013328,
+            "rail_bytes": [
+              14379797.67840304,
+              17077482.32159696
+            ],
+            "reachable": true
+          },
+          {
+            "src": 7,
+            "dst": 8,
+            "finish_ns": 1381904.6815730443,
+            "duration_ns": 1381904.6815730443,
+            "rail_bytes": [
+              15827954.336530881,
+              15629325.66346912
+            ],
+            "reachable": true
+          },
+          {
+            "src": 8,
+            "dst": 13,
+            "finish_ns": 1478374.1413419426,
+            "duration_ns": 1478374.1413419426,
+            "rail_bytes": [
+              16974124.825959012,
+              14483155.17404099
+            ],
+            "reachable": true
+          },
+          {
+            "src": 9,
+            "dst": 14,
+            "finish_ns": 1362133.157974081,
+            "duration_ns": 1362133.157974081,
+            "rail_bytes": [
+              15711793.111277215,
+              15745486.888722785
+            ],
+            "reachable": true
+          },
+          {
+            "src": 10,
+            "dst": 15,
+            "finish_ns": 1463711.7690824983,
+            "duration_ns": 1463711.7690824983,
+            "rail_bytes": [
+              14447667.633671049,
+              17009612.36632895
+            ],
+            "reachable": true
+          },
+          {
+            "src": 11,
+            "dst": 12,
+            "finish_ns": 1380596.986056286,
+            "duration_ns": 1380596.986056286,
+            "rail_bytes": [
+              15883149.175400224,
+              15574130.824599775
+            ],
+            "reachable": true
+          },
+          {
+            "src": 12,
+            "dst": 1,
+            "finish_ns": 1529855.8466635738,
+            "duration_ns": 1529855.8466635738,
+            "rail_bytes": [
+              14391542.93993238,
+              17065737.06006762
+            ],
+            "reachable": true
+          },
+          {
+            "src": 13,
+            "dst": 2,
+            "finish_ns": 1475138.096618817,
+            "duration_ns": 1475138.096618817,
+            "rail_bytes": [
+              16917454.358973134,
+              14539825.641026868
+            ],
+            "reachable": true
+          },
+          {
+            "src": 14,
+            "dst": 3,
+            "finish_ns": 1359332.5942666514,
+            "duration_ns": 1359332.5942666514,
+            "rail_bytes": [
+              15646250.73348771,
+              15811029.26651229
+            ],
+            "reachable": true
+          },
+          {
+            "src": 15,
+            "dst": 0,
+            "finish_ns": 1460719.7800867925,
+            "duration_ns": 1460719.7800867925,
+            "rail_bytes": [
+              14626609.554063164,
+              16830670.445936836
+            ],
+            "reachable": true
+          }
+        ]
+      }
+    },
+    "44": {
+      "schedule": [
+        {
+          "fault_id": "random-44-L1-25",
+          "fault_type": "service_degradation",
+          "target_link_id": "L1-25",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.41097056680214056,
+          "parameter_before": 1,
+          "parameter_after": 0.5890294331978594,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-44-L10-26",
+          "fault_type": "service_degradation",
+          "target_link_id": "L10-26",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.7915943283020409,
+          "parameter_before": 1,
+          "parameter_after": 0.2084056716979591,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-44-L14-22",
+          "fault_type": "service_degradation",
+          "target_link_id": "L14-22",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.5548082091451505,
+          "parameter_before": 1,
+          "parameter_after": 0.4451917908548495,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-44-L2-22",
+          "fault_type": "service_degradation",
+          "target_link_id": "L2-22",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.023277802614488863,
+          "parameter_before": 1,
+          "parameter_after": 0.9767221973855111,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-44-L2-26",
+          "fault_type": "service_degradation",
+          "target_link_id": "L2-26",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.09332042675429104,
+          "parameter_before": 1,
+          "parameter_after": 0.9066795732457089,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-44-L5-21",
+          "fault_type": "service_degradation",
+          "target_link_id": "L5-21",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.007044500709653523,
+          "parameter_before": 1,
+          "parameter_after": 0.9929554992903464,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-44-L7-23",
+          "fault_type": "service_degradation",
+          "target_link_id": "L7-23",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.18012761646251738,
+          "parameter_before": 1,
+          "parameter_after": 0.8198723835374826,
+          "recovery_delay_ns": 0
+        },
+        {
+          "fault_id": "random-44-L7-27",
+          "fault_type": "service_degradation",
+          "target_link_id": "L7-27",
+          "start_time_ns": 1000000,
+          "end_time_ns": 100000000,
+          "severity": 0.12535226806669106,
+          "parameter_before": 1,
+          "parameter_after": 0.8746477319333089,
+          "recovery_delay_ns": 0
+        }
+      ],
+      "fault_sha256": "817f97d21c1f4cee4823b95dd47d8d62ac21667c87f1b66654315a9f6b66ad78",
+      "results": {
+        "B0": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            0,
+            503316480
+          ],
+          "acked_payload_bytes": [
+            0,
+            503316480
+          ],
+          "transport_span_ns": 8813913,
+          "workload_finish_ns": 8817929,
+          "informative_samples": 26,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B1": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            251658240,
+            251658240
+          ],
+          "acked_payload_bytes": [
+            251658240,
+            251658240
+          ],
+          "transport_span_ns": 2817216,
+          "workload_finish_ns": 2821232,
+          "informative_samples": 3,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B2": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            251854848,
+            251461632
+          ],
+          "acked_payload_bytes": [
+            251854848,
+            251461632
+          ],
+          "transport_span_ns": 2776063,
+          "workload_finish_ns": 2780079,
+          "informative_samples": 3,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B3": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            255918080,
+            247398400
+          ],
+          "acked_payload_bytes": [
+            255918080,
+            247398400
+          ],
+          "transport_span_ns": 1710754,
+          "workload_finish_ns": 1714770,
+          "informative_samples": 0,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B4": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            256049152,
+            247267328
+          ],
+          "acked_payload_bytes": [
+            256049152,
+            247267328
+          ],
+          "transport_span_ns": 1744534,
+          "workload_finish_ns": 1748550,
+          "informative_samples": 0,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B6": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            260177920,
+            243138560
+          ],
+          "acked_payload_bytes": [
+            260177920,
+            243138560
+          ],
+          "transport_span_ns": 2123000,
+          "workload_finish_ns": 2127016,
+          "informative_samples": 1,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B7": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": {
+            "pass": true,
+            "probes": [
+              {
+                "src": 0,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5040363028421304
+              },
+              {
+                "src": 1,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 2,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 3,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 4,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5037475533489283
+              },
+              {
+                "src": 5,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 6,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 7,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 8,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 9,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 10,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 11,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 12,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 13,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 14,
+                "bytes": 65536,
+                "A_elapsed_ns": 10576,
+                "B_elapsed_ns": 10371,
+                "A_weight": 0.49510669785649497
+              },
+              {
+                "src": 15,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              }
+            ],
+            "completion_samples": 7680
+          },
+          "assigned_bytes": [
+            251789312,
+            251527168
+          ],
+          "acked_payload_bytes": [
+            251789312,
+            251527168
+          ],
+          "transport_span_ns": 2930385,
+          "workload_finish_ns": 2934401,
+          "informative_samples": 4,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        },
+        "B8": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": {
+            "pass": true,
+            "probes": [
+              {
+                "src": 0,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5040363028421304
+              },
+              {
+                "src": 1,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 2,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 3,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 4,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5037475533489283
+              },
+              {
+                "src": 5,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 6,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 7,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 8,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 9,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 10,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 11,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 12,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 13,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 14,
+                "bytes": 65536,
+                "A_elapsed_ns": 10576,
+                "B_elapsed_ns": 10371,
+                "A_weight": 0.49510669785649497
+              },
+              {
+                "src": 15,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              }
+            ],
+            "completion_samples": 7680
+          },
+          "assigned_bytes": [
+            255000576,
+            248315904
+          ],
+          "acked_payload_bytes": [
+            255000576,
+            248315904
+          ],
+          "transport_span_ns": 2039655,
+          "workload_finish_ns": 2043671,
+          "informative_samples": 0,
+          "tensor_numeric_correctness": "not simulated",
+          "same_fault_schedule": true,
+          "fault_application_exact": true
+        }
+      },
+      "calibration": {
+        "calibration_0": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            503316480,
+            0
+          ],
+          "acked_payload_bytes": [
+            503316480,
+            0
+          ],
+          "transport_span_ns": 5945345,
+          "workload_finish_ns": 5949361,
+          "informative_samples": 23,
+          "tensor_numeric_correctness": "not simulated"
+        },
+        "calibration_1": {
+          "pass": true,
+          "pending_chunks": 0,
+          "chunk_feedback": null,
+          "assigned_bytes": [
+            0,
+            503316480
+          ],
+          "acked_payload_bytes": [
+            0,
+            503316480
+          ],
+          "transport_span_ns": 12504724,
+          "workload_finish_ns": 12508740,
+          "informative_samples": 31,
+          "tensor_numeric_correctness": "not simulated"
+        }
+      },
+      "B5": {
+        "full_allreduce_bound": false,
+        "scope": "conditional independent-pair fluid relaxation",
+        "pairs": [
+          {
+            "src": 0,
+            "dst": 5,
+            "finish_ns": 1363604.517062284,
+            "duration_ns": 1363604.517062284,
+            "rail_bytes": [
+              15774464.074175075,
+              15682815.925824929
+            ],
+            "reachable": true
+          },
+          {
+            "src": 1,
+            "dst": 6,
+            "finish_ns": 1469939.6351520102,
+            "duration_ns": 1469939.6351520102,
+            "rail_bytes": [
+              16870946.185961116,
+              14586333.814038886
+            ],
+            "reachable": true
+          },
+          {
+            "src": 2,
+            "dst": 7,
+            "finish_ns": 1423465.8452617757,
+            "duration_ns": 1423465.8452617757,
+            "rail_bytes": [
+              15576588.929764204,
+              15880691.070235798
+            ],
+            "reachable": true
+          },
+          {
+            "src": 3,
+            "dst": 4,
+            "finish_ns": 1345646.2199399185,
+            "duration_ns": 1345646.2199399185,
+            "rail_bytes": [
+              15729534.072600888,
+              15727745.927399114
+            ],
+            "reachable": true
+          },
+          {
+            "src": 4,
+            "dst": 9,
+            "finish_ns": 1355710.2966322675,
+            "duration_ns": 1355710.2966322675,
+            "rail_bytes": [
+              15816168.70124387,
+              15641111.298756128
+            ],
+            "reachable": true
+          },
+          {
+            "src": 5,
+            "dst": 10,
+            "finish_ns": 1611139.8297740023,
+            "duration_ns": 1611139.8297740023,
+            "rail_bytes": [
+              18394645.667600997,
+              13062634.332399
+            ],
+            "reachable": true
+          },
+          {
+            "src": 6,
+            "dst": 11,
+            "finish_ns": 1367828.3432390804,
+            "duration_ns": 1367828.3432390804,
+            "rail_bytes": [
+              15676751.839768156,
+              15780528.160231845
+            ],
+            "reachable": true
+          },
+          {
+            "src": 7,
+            "dst": 8,
+            "finish_ns": 1417603.6580269947,
+            "duration_ns": 1417603.6580269947,
+            "rail_bytes": [
+              15761449.22707155,
+              15695830.772928454
+            ],
+            "reachable": true
+          },
+          {
+            "src": 8,
+            "dst": 13,
+            "finish_ns": 1352956.2724173153,
+            "duration_ns": 1352956.2724173153,
+            "rail_bytes": [
+              15708194.131765265,
+              15749085.868234737
+            ],
+            "reachable": true
+          },
+          {
+            "src": 9,
+            "dst": 14,
+            "finish_ns": 1492380.3410531373,
+            "duration_ns": 1492380.3410531373,
+            "rail_bytes": [
+              14417674.924952552,
+              17039605.07504745
+            ],
+            "reachable": true
+          },
+          {
+            "src": 10,
+            "dst": 15,
+            "finish_ns": 1600658.0126592056,
+            "duration_ns": 1600658.0126592056,
+            "rail_bytes": [
+              18392508.246016063,
+              13064771.753983939
+            ],
+            "reachable": true
+          },
+          {
+            "src": 11,
+            "dst": 12,
+            "finish_ns": 1363728.8887955302,
+            "duration_ns": 1363728.8887955302,
+            "rail_bytes": [
+              15666257.34149133,
+              15791022.65850867
+            ],
+            "reachable": true
+          },
+          {
+            "src": 12,
+            "dst": 1,
+            "finish_ns": 1443328.618255809,
+            "duration_ns": 1443328.618255809,
+            "rail_bytes": [
+              16613321.6883431,
+              14843958.3116569
+            ],
+            "reachable": true
+          },
+          {
+            "src": 13,
+            "dst": 2,
+            "finish_ns": 1391184.414985248,
+            "duration_ns": 1391184.414985248,
+            "rail_bytes": [
+              15816531.681363242,
+              15640748.318636756
+            ],
+            "reachable": true
+          },
+          {
+            "src": 14,
+            "dst": 3,
+            "finish_ns": 1500258.0454693504,
+            "duration_ns": 1500258.0454693504,
+            "rail_bytes": [
+              14300196.784205288,
+              17157083.215794712
+            ],
+            "reachable": true
+          },
+          {
+            "src": 15,
+            "dst": 0,
+            "finish_ns": 1349723.9608174828,
+            "duration_ns": 1349723.9608174828,
+            "rail_bytes": [
+              15679286.51521119,
+              15777993.48478881
+            ],
+            "reachable": true
+          }
+        ]
+      }
+    }
+  },
+  "calibration": {
+    "calibration_0": {
+      "pass": true,
+      "pending_chunks": 0,
+      "chunk_feedback": null,
+      "assigned_bytes": [
+        503316480,
+        0
+      ],
+      "acked_payload_bytes": [
+        503316480,
+        0
+      ],
+      "transport_span_ns": 2750509,
+      "workload_finish_ns": 2754525,
+      "informative_samples": 16,
+      "tensor_numeric_correctness": "not simulated"
+    },
+    "calibration_1": {
+      "pass": true,
+      "pending_chunks": 0,
+      "chunk_feedback": null,
+      "assigned_bytes": [
+        0,
+        503316480
+      ],
+      "acked_payload_bytes": [
+        0,
+        503316480
+      ],
+      "transport_span_ns": 2775112,
+      "workload_finish_ns": 2779128,
+      "informative_samples": 16,
+      "tensor_numeric_correctness": "not simulated"
+    }
+  },
+  "pass": true,
+  "same_payload": true,
+  "aggregate_ms": {
+    "B0": {
+      "mean": 6.9573,
+      "min": 4.173781,
+      "max": 8.817929
+    },
+    "B1": {
+      "mean": 2.4810163333333333,
+      "min": 2.021495,
+      "max": 2.821232
+    },
+    "B2": {
+      "mean": 2.4987706666666667,
+      "min": 1.995497,
+      "max": 2.780079
+    },
+    "B3": {
+      "mean": 1.7402303333333333,
+      "min": 1.71477,
+      "max": 1.770558
+    },
+    "B4": {
+      "mean": 1.7637956666666668,
+      "min": 1.712237,
+      "max": 1.8306
+    },
+    "B6": {
+      "mean": 2.0703723333333333,
+      "min": 1.964804,
+      "max": 2.127016
+    },
+    "B7": {
+      "mean": 2.536764333333333,
+      "min": 1.968565,
+      "max": 2.934401
+    },
+    "B8": {
+      "mean": 1.8895876666666667,
+      "min": 1.762931,
+      "max": 2.043671
+    }
+  }
+}

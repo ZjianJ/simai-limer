@@ -1,0 +1,872 @@
+{
+  "scope": "B2/B6/B7/B8 on healthy, static and dynamic rail degradation",
+  "tensor_numeric_correctness": "not simulated",
+  "scenarios": {
+    "healthy": {
+      "exit_code": 0,
+      "policies": {
+        "B2": {
+          "pass": true,
+          "workload_finish_ns": 1435602,
+          "historical_finish_ns": 1435602,
+          "delta_ns": 0,
+          "acked_payload_bytes": [
+            251854848,
+            251461632
+          ],
+          "pending_chunks": 0,
+          "chunk_feedback": null
+        },
+        "B6": {
+          "pass": true,
+          "workload_finish_ns": 1484791,
+          "historical_finish_ns": 1484791,
+          "delta_ns": 0,
+          "acked_payload_bytes": [
+            257032192,
+            246284288
+          ],
+          "pending_chunks": 0,
+          "chunk_feedback": null
+        },
+        "B7": {
+          "pass": true,
+          "workload_finish_ns": 1445572,
+          "historical_finish_ns": 1445572,
+          "delta_ns": 0,
+          "acked_payload_bytes": [
+            251789312,
+            251527168
+          ],
+          "pending_chunks": 0,
+          "chunk_feedback": {
+            "pass": true,
+            "probes": [
+              {
+                "src": 0,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5040363028421304
+              },
+              {
+                "src": 1,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 2,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 3,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 4,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5037475533489283
+              },
+              {
+                "src": 5,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 6,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 7,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 8,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 9,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 10,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 11,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 12,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 13,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 14,
+                "bytes": 65536,
+                "A_elapsed_ns": 10576,
+                "B_elapsed_ns": 10371,
+                "A_weight": 0.49510669785649497
+              },
+              {
+                "src": 15,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              }
+            ],
+            "completion_samples": 7680
+          }
+        },
+        "B8": {
+          "pass": true,
+          "workload_finish_ns": 1380376,
+          "historical_finish_ns": 1380376,
+          "delta_ns": 0,
+          "acked_payload_bytes": [
+            251330560,
+            251985920
+          ],
+          "pending_chunks": 0,
+          "chunk_feedback": {
+            "pass": true,
+            "probes": [
+              {
+                "src": 0,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5040363028421304
+              },
+              {
+                "src": 1,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 2,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 3,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 4,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5037475533489283
+              },
+              {
+                "src": 5,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 6,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 7,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 8,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 9,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 10,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 11,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 12,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 13,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 14,
+                "bytes": 65536,
+                "A_elapsed_ns": 10576,
+                "B_elapsed_ns": 10371,
+                "A_weight": 0.49510669785649497
+              },
+              {
+                "src": 15,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              }
+            ],
+            "completion_samples": 7680
+          }
+        }
+      },
+      "same_payload_across_policies": true
+    },
+    "static": {
+      "exit_code": 0,
+      "policies": {
+        "B2": {
+          "pass": true,
+          "workload_finish_ns": 2173988,
+          "historical_finish_ns": 2173988,
+          "delta_ns": 0,
+          "acked_payload_bytes": [
+            399704064,
+            103612416
+          ],
+          "pending_chunks": 0,
+          "chunk_feedback": null
+        },
+        "B6": {
+          "pass": true,
+          "workload_finish_ns": 2350511,
+          "historical_finish_ns": 2350511,
+          "delta_ns": 0,
+          "acked_payload_bytes": [
+            402128896,
+            101187584
+          ],
+          "pending_chunks": 0,
+          "chunk_feedback": null
+        },
+        "B7": {
+          "pass": true,
+          "workload_finish_ns": 2909666,
+          "historical_finish_ns": 2909666,
+          "delta_ns": 0,
+          "acked_payload_bytes": [
+            368967680,
+            134348800
+          ],
+          "pending_chunks": 0,
+          "chunk_feedback": {
+            "pass": true,
+            "probes": [
+              {
+                "src": 0,
+                "bytes": 65536,
+                "A_elapsed_ns": 11178,
+                "B_elapsed_ns": 29628,
+                "A_weight": 0.7260696956329952
+              },
+              {
+                "src": 1,
+                "bytes": 65536,
+                "A_elapsed_ns": 11178,
+                "B_elapsed_ns": 29541,
+                "A_weight": 0.7254844175937523
+              },
+              {
+                "src": 2,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 29565,
+                "A_weight": 0.7402353530295444
+              },
+              {
+                "src": 3,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 29730,
+                "A_weight": 0.7411562336399671
+              },
+              {
+                "src": 4,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 28637,
+                "A_weight": 0.7339056893900564
+              },
+              {
+                "src": 5,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 28552,
+                "A_weight": 0.7333247720559908
+              },
+              {
+                "src": 6,
+                "bytes": 65536,
+                "A_elapsed_ns": 11194,
+                "B_elapsed_ns": 28616,
+                "A_weight": 0.7188143682491837
+              },
+              {
+                "src": 7,
+                "bytes": 65536,
+                "A_elapsed_ns": 11194,
+                "B_elapsed_ns": 28552,
+                "A_weight": 0.7183615961354601
+              },
+              {
+                "src": 8,
+                "bytes": 65536,
+                "A_elapsed_ns": 11178,
+                "B_elapsed_ns": 29644,
+                "A_weight": 0.726177061388467
+              },
+              {
+                "src": 9,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 28821,
+                "A_weight": 0.735154576063667
+              },
+              {
+                "src": 10,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 28837,
+                "A_weight": 0.735412628787106
+              },
+              {
+                "src": 11,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 28664,
+                "A_weight": 0.7340896867877174
+              },
+              {
+                "src": 12,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 28552,
+                "A_weight": 0.7334754797441365
+              },
+              {
+                "src": 13,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 28536,
+                "A_weight": 0.7332151391351268
+              },
+              {
+                "src": 14,
+                "bytes": 65536,
+                "A_elapsed_ns": 10564,
+                "B_elapsed_ns": 28456,
+                "A_weight": 0.729267042542286
+              },
+              {
+                "src": 15,
+                "bytes": 65536,
+                "A_elapsed_ns": 11178,
+                "B_elapsed_ns": 28813,
+                "A_weight": 0.7204871095996599
+              }
+            ],
+            "completion_samples": 7680
+          }
+        },
+        "B8": {
+          "pass": true,
+          "workload_finish_ns": 2372824,
+          "historical_finish_ns": 2372824,
+          "delta_ns": 0,
+          "acked_payload_bytes": [
+            393150464,
+            110166016
+          ],
+          "pending_chunks": 0,
+          "chunk_feedback": {
+            "pass": true,
+            "probes": [
+              {
+                "src": 0,
+                "bytes": 65536,
+                "A_elapsed_ns": 11178,
+                "B_elapsed_ns": 29628,
+                "A_weight": 0.7260696956329952
+              },
+              {
+                "src": 1,
+                "bytes": 65536,
+                "A_elapsed_ns": 11178,
+                "B_elapsed_ns": 29541,
+                "A_weight": 0.7254844175937523
+              },
+              {
+                "src": 2,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 29565,
+                "A_weight": 0.7402353530295444
+              },
+              {
+                "src": 3,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 29730,
+                "A_weight": 0.7411562336399671
+              },
+              {
+                "src": 4,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 28637,
+                "A_weight": 0.7339056893900564
+              },
+              {
+                "src": 5,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 28552,
+                "A_weight": 0.7333247720559908
+              },
+              {
+                "src": 6,
+                "bytes": 65536,
+                "A_elapsed_ns": 11194,
+                "B_elapsed_ns": 28616,
+                "A_weight": 0.7188143682491837
+              },
+              {
+                "src": 7,
+                "bytes": 65536,
+                "A_elapsed_ns": 11194,
+                "B_elapsed_ns": 28552,
+                "A_weight": 0.7183615961354601
+              },
+              {
+                "src": 8,
+                "bytes": 65536,
+                "A_elapsed_ns": 11178,
+                "B_elapsed_ns": 29644,
+                "A_weight": 0.726177061388467
+              },
+              {
+                "src": 9,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 28821,
+                "A_weight": 0.735154576063667
+              },
+              {
+                "src": 10,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 28837,
+                "A_weight": 0.735412628787106
+              },
+              {
+                "src": 11,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 28664,
+                "A_weight": 0.7340896867877174
+              },
+              {
+                "src": 12,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 28552,
+                "A_weight": 0.7334754797441365
+              },
+              {
+                "src": 13,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 28536,
+                "A_weight": 0.7332151391351268
+              },
+              {
+                "src": 14,
+                "bytes": 65536,
+                "A_elapsed_ns": 10564,
+                "B_elapsed_ns": 28456,
+                "A_weight": 0.729267042542286
+              },
+              {
+                "src": 15,
+                "bytes": 65536,
+                "A_elapsed_ns": 11178,
+                "B_elapsed_ns": 28813,
+                "A_weight": 0.7204871095996599
+              }
+            ],
+            "completion_samples": 7680
+          }
+        }
+      },
+      "same_payload_across_policies": true
+    },
+    "dynamic": {
+      "exit_code": 0,
+      "policies": {
+        "B2": {
+          "pass": true,
+          "workload_finish_ns": 2527485,
+          "historical_finish_ns": 2527485,
+          "delta_ns": 0,
+          "acked_payload_bytes": [
+            251854848,
+            251461632
+          ],
+          "pending_chunks": 0,
+          "chunk_feedback": null
+        },
+        "B6": {
+          "pass": true,
+          "workload_finish_ns": 1822208,
+          "historical_finish_ns": 1822208,
+          "delta_ns": 0,
+          "acked_payload_bytes": [
+            298123264,
+            205193216
+          ],
+          "pending_chunks": 0,
+          "chunk_feedback": null
+        },
+        "B7": {
+          "pass": true,
+          "workload_finish_ns": 2617752,
+          "historical_finish_ns": 2617752,
+          "delta_ns": 0,
+          "acked_payload_bytes": [
+            251789312,
+            251527168
+          ],
+          "pending_chunks": 0,
+          "chunk_feedback": {
+            "pass": true,
+            "probes": [
+              {
+                "src": 0,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5040363028421304
+              },
+              {
+                "src": 1,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 2,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 3,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 4,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5037475533489283
+              },
+              {
+                "src": 5,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 6,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 7,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 8,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 9,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 10,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 11,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 12,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 13,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 14,
+                "bytes": 65536,
+                "A_elapsed_ns": 10576,
+                "B_elapsed_ns": 10371,
+                "A_weight": 0.49510669785649497
+              },
+              {
+                "src": 15,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              }
+            ],
+            "completion_samples": 7680
+          }
+        },
+        "B8": {
+          "pass": true,
+          "workload_finish_ns": 1749208,
+          "historical_finish_ns": 1749208,
+          "delta_ns": 0,
+          "acked_payload_bytes": [
+            285868032,
+            217448448
+          ],
+          "pending_chunks": 0,
+          "chunk_feedback": {
+            "pass": true,
+            "probes": [
+              {
+                "src": 0,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5040363028421304
+              },
+              {
+                "src": 1,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 2,
+                "bytes": 65536,
+                "A_elapsed_ns": 10375,
+                "B_elapsed_ns": 10395,
+                "A_weight": 0.5004814636494944
+              },
+              {
+                "src": 3,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 4,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10552,
+                "A_weight": 0.5037475533489283
+              },
+              {
+                "src": 5,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 6,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 7,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 8,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 9,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 10,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10387,
+                "A_weight": 0.5000962927298989
+              },
+              {
+                "src": 11,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 12,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              },
+              {
+                "src": 13,
+                "bytes": 65536,
+                "A_elapsed_ns": 10395,
+                "B_elapsed_ns": 10375,
+                "A_weight": 0.4995185363505055
+              },
+              {
+                "src": 14,
+                "bytes": 65536,
+                "A_elapsed_ns": 10576,
+                "B_elapsed_ns": 10371,
+                "A_weight": 0.49510669785649497
+              },
+              {
+                "src": 15,
+                "bytes": 65536,
+                "A_elapsed_ns": 10383,
+                "B_elapsed_ns": 10383,
+                "A_weight": 0.5
+              }
+            ],
+            "completion_samples": 7680
+          }
+        }
+      },
+      "same_payload_across_policies": true
+    }
+  },
+  "pass": true,
+  "historical_finish_times_exact": true
+}

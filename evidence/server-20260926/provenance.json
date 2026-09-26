@@ -1,0 +1,112 @@
+{
+  "date": "2026-09-26",
+  "scope": "historical server evidence, not new measurements",
+  "repositories": [
+    {
+      "name": "astra-sim-alibabacloud",
+      "base": "f5efb5a93ea9be7db25a8843f9f7ff54044f6062",
+      "head": "5ab08017cf3301b2d88d39fa8722e178ad1548f1",
+      "status": "## limer-monitoring\n M astra-sim-alibabacloud/astra-sim/network_frontend/ns3/AstraSimNetwork.cc\n M astra-sim-alibabacloud/astra-sim/network_frontend/ns3/common.h\n M astra-sim-alibabacloud/astra-sim/network_frontend/ns3/entry.h\n M astra-sim-alibabacloud/astra-sim/network_frontend/ns3/limer_telemetry.h\n M astra-sim-alibabacloud/astra-sim/system/DataSet.cc\n M astra-sim-alibabacloud/astra-sim/system/DataSet.hh\n M astra-sim-alibabacloud/astra-sim/system/Sys.cc\n M astra-sim-alibabacloud/astra-sim/system/Sys.hh\n M astra-sim-alibabacloud/astra-sim/system/UsageTracker.cc\n M astra-sim-alibabacloud/astra-sim/system/UsageTracker.hh\n M astra-sim-alibabacloud/astra-sim/workload/Workload.cc\n M astra-sim-alibabacloud/build.sh\n M astra-sim-alibabacloud/build/astra_ns3/build.sh\n M astra-sim-alibabacloud/inputs/topo/gen_Topo_Template.py\n M limer/README.md\n M limer/docs/monitoring_design.md\n M limer/docs/telemetry_schema.md\n M limer/scripts/build_simai.sh\n M limer/tools/build_monitoring_dataset.py\n M limer/tools/validate_telemetry.py\n m ns-3-alibabacloud\n M scripts/build.sh\n?? astra-sim-alibabacloud/astra-sim/network_frontend/ns3/collective_causal_time.h\n?? astra-sim-alibabacloud/astra-sim/network_frontend/ns3/limer_background_flow.h\n?? astra-sim-alibabacloud/astra-sim/network_frontend/ns3/limer_censored_model.h\n?? astra-sim-alibabacloud/astra-sim/network_frontend/ns3/limer_sparse_signal.h\n?? astra-sim-alibabacloud/astra-sim/network_frontend/ns3/limer_split_policy.h\n?? astra-sim-alibabacloud/astra-sim/network_frontend/ns3/limer_split_runtime.h\n?? astra-sim-alibabacloud/astra-sim/network_frontend/ns3/limer_wait_model.h\n?? astra-sim-alibabacloud/astra-sim/network_frontend/ns3/training_source_port_allocator.h\n?? core\n?? limer/configs/experiment_contract.yaml\n?? limer/configs/microAllReduce_16rank_10iter.txt\n?? limer/configs/microAllReduce_16rank_hardfault.txt\n?? limer/configs/microAllReduce_16rank_p1_healthy_120ms.txt\n?? limer/configs/microAllReduce_16rank_p2_q1_completion_1layer_64kib.txt\n?? limer/configs/microAllReduce_16rank_p2_q2_completion_10layers_64kib.txt\n?? limer/configs/microAllReduce_16rank_p2_q3_completion_32layers_64kib.txt\n?? limer/configs/microAllReduce_16rank_p2_sparse_periodic_450ms.txt\n?? limer/configs/microAllReduce_16rank_p2_sparse_periodic_550ms.txt\n?? limer/configs/microAllReduce_16rank_p2_traffic.txt\n?? limer/configs/microAllReduce_16rank_smoke.txt\n?? limer/configs/microAllReduce_16rank_split_256mib.txt\n?? limer/configs/microAllReduce_16rank_split_64mib.txt\n?? limer/configs/p2_micro_background_incast.csv\n?? limer/configs/p2_micro_carrier_flap.csv\n?? limer/configs/p2_micro_random_loss.csv\n?? limer/configs/p2_micro_service_degradation.csv\n?? limer/configs/related_work_16gpu.json\n?? limer/docs/adaptive_comparison_protocol.md\n?? limer/docs/adaptive_comparison_results.md\n?? limer/docs/animations/\n?? limer/docs/b9_ack_age.md\n?? limer/docs/b9_ack_age_results.md\n?? limer/docs/censored_ucb_protocol.md\n?? limer/docs/censored_ucb_results.md\n?? limer/docs/chunk_feedback_experiment.md\n?? limer/docs/chunk_feedback_qualification.md\n?? limer/docs/current_system_slo_baseline.md\n?? limer/docs/detection_baselines.md\n?? limer/docs/experiment_contract.md\n?? limer/docs/gray_fault_qghmm_design.md\n?? limer/docs/p2_platform_qualification.md\n?? limer/docs/random_split_baselines.md\n?? limer/docs/random_split_qualification.md\n?? limer/docs/related_work_16gpu.md\n?? limer/docs/research_questions.md\n?? limer/docs/split_baselines.md\n?? limer/docs/split_baselines_qualification.md\n?? limer/docs/validation_16gpu.md\n?? limer/scripts/build_split_baselines.sh\n?? limer/scripts/run_16gpu_validation.sh\n?? limer/scripts/run_current_system_slo_baseline.sh\n?? limer/scripts/run_detection_baseline_comparison.sh\n?? limer/scripts/run_gray_fault_qghmm_experiment.sh\n?? limer/scripts/run_related_work_16gpu.sh\n?? limer/scripts/run_true16_hard_fault_e2e.sh\n?? limer/scripts/run_true16_hard_fault_matrix.sh\n?? limer/tests/\n?? limer/tools/__pycache__/\n?? limer/tools/analyze_adaptive_mechanisms.py\n?? limer/tools/analyze_censored_mechanisms.py\n?? limer/tools/audit_adaptive_split.py\n?? limer/tools/audit_censored_split.py\n?? limer/tools/audit_true16_monitoring.py\n?? limer/tools/build_gray_fault_dataset.py\n?? limer/tools/compare_detection_baselines.py\n?? limer/tools/evaluate_current_system_slo_baseline.py\n?? limer/tools/evaluate_p0_gate.py\n?? limer/tools/evaluate_qg_hmm.py\n?? limer/tools/evaluate_qghmm_ablations.py\n?? limer/tools/evaluate_related_work_16gpu.py\n?? limer/tools/evaluate_stage_p2.py\n?? limer/tools/evaluate_true16_hard_fault_e2e.py\n?? limer/tools/evaluate_true16_hard_fault_matrix.py\n?? limer/tools/finalize_stage_p1.py\n?? limer/tools/finalize_true16_p2_corpus.py\n?? limer/tools/freeze_baseline.py\n?? limer/tools/generate_detection_benchmark_schedule.py\n?? limer/tools/generate_gray_fault_benchmark.py\n?? limer/tools/generate_true16_p2_corpus.py\n?? limer/tools/generate_true16_traffic_workload.py\n?? limer/tools/prepare_split_static_fault.py\n?? limer/tools/prepare_true16_hard_fault.py\n?? limer/tools/qghmm_common.py\n?? limer/tools/quantize_qg_hmm.py\n?? limer/tools/related_work_common.py\n?? limer/tools/replay_qg_hmm.py\n?? limer/tools/run_adaptive_comparison.py\n?? limer/tools/run_b9_comparison.py\n?? limer/tools/run_censored_comparison.py\n?? limer/tools/run_random_split_baselines.py\n?? limer/tools/run_split_baselines.py\n?? limer/tools/run_true16_p2_corpus.py\n?? limer/tools/run_true16_p2_platform_qualification.py\n?? limer/tools/run_zero_delay_shadow.py\n?? limer/tools/simulator_runtime_bundle.py\n?? limer/tools/split_capacity.py\n?? limer/tools/summarize_adaptive_comparison.py\n?? limer/tools/summarize_censored_comparison.py\n?? limer/tools/summarize_random_split_baselines.py\n?? limer/tools/summarize_split_baselines.py\n?? limer/tools/train_qg_hmm.py\n?? limer/tools/validate_background_route_choices.py\n?? limer/tools/validate_congestion_signal_events.py\n?? limer/tools/validate_ecmp_route_candidates.py\n?? limer/tools/validate_experiment_contract.py\n?? limer/tools/validate_p2_mechanism_run.py\n?? limer/tools/validate_p2_workload_runtime.py\n?? limer/tools/validate_training_source_port_allocator.py\n?? limer/tools/validate_true16_dualrail.py\n",
+      "patch_sha256": "6923eea75e7d2edf2a0760d80678cedc9c0590c01096458d3930300ade2360bf"
+    },
+    {
+      "name": "ns-3-alibabacloud",
+      "base": "7e3cb5b88c99abcb582c5abc3919484a4805111b",
+      "head": "3cf974d8711ba09d9f952851454547339c813949",
+      "status": "## limer-monitoring\n M simulation/src/applications/helper/rdma-client-helper.cc\n M simulation/src/applications/model/rdma-client.cc\n M simulation/src/applications/model/rdma-client.h\n M simulation/src/mpi/model/hybrid-simulator-impl.cc\n M simulation/src/mtp/model/logical-process.cc\n M simulation/src/mtp/model/logical-process.h\n M simulation/src/mtp/model/mtp-interface.cc\n M simulation/src/mtp/model/mtp-interface.h\n M simulation/src/mtp/model/multithreaded-simulator-impl.cc\n M simulation/src/network/model/node.cc\n M simulation/src/network/model/node.h\n M simulation/src/network/utils/broadcom-egress-queue.cc\n M simulation/src/network/utils/broadcom-egress-queue.h\n M simulation/src/point-to-point/CMakeLists.txt\n M simulation/src/point-to-point/model/nvswitch-node.cc\n M simulation/src/point-to-point/model/nvswitch-node.h\n M simulation/src/point-to-point/model/qbb-channel.cc\n M simulation/src/point-to-point/model/qbb-channel.h\n M simulation/src/point-to-point/model/qbb-net-device.cc\n M simulation/src/point-to-point/model/qbb-net-device.h\n M simulation/src/point-to-point/model/rdma-driver.cc\n M simulation/src/point-to-point/model/rdma-driver.h\n M simulation/src/point-to-point/model/rdma-hw.cc\n M simulation/src/point-to-point/model/rdma-hw.h\n M simulation/src/point-to-point/model/rdma-queue-pair.cc\n M simulation/src/point-to-point/model/rdma-queue-pair.h\n M simulation/src/point-to-point/model/switch-node.cc\n M simulation/src/point-to-point/model/switch-node.h\n?? simulation/.lock-ns3_linux_build\n?? simulation/build/\n?? simulation/src/applications/astra-sim/\n?? simulation/src/point-to-point/model/limer-congestion-signal.cc\n?? simulation/src/point-to-point/model/limer-congestion-signal.h\n?? simulation/src/point-to-point/model/limer-route-choice.cc\n?? simulation/src/point-to-point/model/limer-route-choice.h\n",
+      "patch_sha256": "0ef54dc90fa1c85f98fb8cd5d41f3c90858da67fc91c6cbbde7dc651a49ceece"
+    }
+  ],
+  "archives": {
+    "source.tar.gz": {
+      "bytes": 71655480,
+      "sha256": "f8c887de9837cb9cc897a06dac699128e074d076ab448aae1a5a6978086bfb0f"
+    },
+    "evidence.tar.gz": {
+      "bytes": 240065214,
+      "sha256": "e26a9dd6d53a50fd5f77c2eda495ec9b659877305b12d9e36877ef4e3b48ad30"
+    }
+  },
+  "files": {
+    "split_baselines/B6_256mib_20260908/summary.json": {
+      "sha256": "53cf9fc129296ea39c99fd8ea07240abd85c4db36a1d74e6cbd55b8b10c244cd",
+      "bytes": 605
+    },
+    "split_baselines/adaptive_three_20260916/summary.json": {
+      "sha256": "d3966e6c0a5a608592b290efd595d608975172d84a6f375cc350efff5048111e",
+      "bytes": 521399
+    },
+    "split_baselines/adaptive_zero_shadow_20260916/summary.json": {
+      "sha256": "e5c9276b7b9d0e80243c2ee169e2638bbc562b6724009d479368e6d5979e1d12",
+      "bytes": 36547
+    },
+    "split_baselines/b9_ack_age_20260916/summary.json": {
+      "sha256": "3fde09de18d70cc2e681319befc248fbeef88017bc52e9013398ad6eac8f1427",
+      "bytes": 31584
+    },
+    "split_baselines/censored_ucb_20260916/summary.json": {
+      "sha256": "9fb427e556dfc2944ee016ae97b22b890f86cea96d140803f5fd3a4502ff5da9",
+      "bytes": 937306
+    },
+    "split_baselines/chunk_feedback_dynamic_64mib_20260908/summary.json": {
+      "sha256": "37342017e36f41c78d76384d07a2f0f21feb9ed9a793d5a8284fecb4a3d5548b",
+      "bytes": 7967
+    },
+    "split_baselines/chunk_feedback_healthy_64mib_20260908/summary.json": {
+      "sha256": "edff425d6d1e1504dfe4d694dd7e43003cd9c4340ff5b09edd207c0fb43ebf4b",
+      "bytes": 7965
+    },
+    "split_baselines/chunk_feedback_static_64mib_20260908/summary.json": {
+      "sha256": "d4697d6c04822778a83210423caf910533f709f92e82450f45d3cfa6b75bb86c",
+      "bytes": 8079
+    },
+    "split_baselines/dynamic_B_quarter_at_1ms_20260908.csv": {
+      "sha256": "acadce0e3b3cbb724efb27655dedd9c2100832d0f580a368859f51e4cf613f58",
+      "bytes": 1333
+    },
+    "split_baselines/healthy_64mib_20260908/capacity.csv": {
+      "sha256": "da2cc60e12c947729a63023be8182b63aa7ba70e9ff29607406d0f1f46b714ac",
+      "bytes": 882
+    },
+    "split_baselines/healthy_64mib_20260908/summary.json": {
+      "sha256": "ae15a7335d9eb4c8d6a76fd961d5c150f39772cf4c3fff82d810c685cc489d73",
+      "bytes": 7563
+    },
+    "split_baselines/healthy_smoke_20260908/capacity.csv": {
+      "sha256": "8a1d4e08cb4f56a7d349807aaea4c5da630079c2ae21bdc57db909bd365d6115",
+      "bytes": 907
+    },
+    "split_baselines/healthy_smoke_20260908/summary.json": {
+      "sha256": "32f6af1cf92b8f86edfcefe9cb098c738166bf7ff5cdee65b21819c202d87569",
+      "bytes": 7199
+    },
+    "split_baselines/healthy_smoke_single_worker_20260908/capacity.csv": {
+      "sha256": "8a1d4e08cb4f56a7d349807aaea4c5da630079c2ae21bdc57db909bd365d6115",
+      "bytes": 907
+    },
+    "split_baselines/healthy_smoke_single_worker_20260908/summary.json": {
+      "sha256": "21c13cca99c268f66f0767722de0f0cbdfb713d7c7bf841f6a627e0b47a670e0",
+      "bytes": 7436
+    },
+    "split_baselines/random_a8_b80_t1ms_20260908/summary.json": {
+      "sha256": "07ab25b198b226e6072173220da278ea230be8441458f34b700821707c84ecaa",
+      "bytes": 64472
+    },
+    "split_baselines/static_B_quarter_20260908.csv": {
+      "sha256": "593b9725ad88d0b53cda04488c9a5136483e3490774a74739c7fd9376b71f3de",
+      "bytes": 1237
+    },
+    "split_baselines/static_B_quarter_64mib_20260908/capacity.csv": {
+      "sha256": "b8a6b31544bb5a22d291d0371b491f852c81256c0bdeb8b08ee30c709a43f5da",
+      "bytes": 894
+    },
+    "split_baselines/static_B_quarter_64mib_20260908/summary.json": {
+      "sha256": "7d2a9296294be9a792e4ea3bbbd4a53287d745e97eb368fb96df30a3648b8f69",
+      "bytes": 7560
+    },
+    "true16_hard_fault_e2e/topology/Spectrum-X_16g_4gps_DualToR_DualPlane_100Gbps_A100": {
+      "sha256": "c0b59d59b9f02a468601b8d20e186936262323318b39d8216d0a31841ba52fac",
+      "bytes": 7866
+    }
+  }
+}

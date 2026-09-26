@@ -1,0 +1,978 @@
+{
+  "schema": "limer.zero-delay-shadow-control.v1",
+  "protocol_sha256": "52517996a5f6f68efaaae7b25acdcb0ee19a747c39cb68012944293e75e4754d",
+  "classification": "post-hoc evaluator/event-scheduling sensitivity control",
+  "scenarios": {
+    "healthy": {
+      "result": {
+        "pass": true,
+        "pending_chunks": 0,
+        "chunk_feedback": {
+          "pass": true,
+          "probes": [
+            {
+              "src": 0,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5040363028421304
+            },
+            {
+              "src": 1,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 2,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 3,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 4,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5037475533489283
+            },
+            {
+              "src": 5,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 6,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 7,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 8,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 9,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 10,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 11,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 12,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 13,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 14,
+              "bytes": 65536,
+              "A_elapsed_ns": 10576,
+              "B_elapsed_ns": 10371,
+              "A_weight": 0.49510669785649497
+            },
+            {
+              "src": 15,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            }
+          ],
+          "completion_samples": 7680,
+          "adaptive": {
+            "pass": true,
+            "policy": "B12",
+            "decision_count": 7680,
+            "wait_observations": 20050,
+            "wait_penalty_rows": 0,
+            "wait_timer_pairs": 2345,
+            "wait_affected_decisions": 0,
+            "signal_affected_decisions": 0,
+            "signal": {
+              "enabled": true,
+              "actuate": false,
+              "sample_ns": 10000,
+              "delay_ns": 0,
+              "ttl_ns": 50000,
+              "heartbeat_ns": 40000,
+              "sample_count": 4768,
+              "port_emits": 1216,
+              "deliveries": 14592,
+              "emitted_logical_payload_bytes": 38912,
+              "delivered_logical_payload_bytes": 466944,
+              "subscribed_logical_payload_bytes": 466944,
+              "deliveries_before_workload_finish": 14592,
+              "state_factor_changes": 0,
+              "monitored_access_ports": 32,
+              "switch_state_budget_bytes_per_port": 48,
+              "control_transport": "fixed-latency reliable logical messages; no data-plane contention"
+            },
+            "conditional_threshold_audit": "sample availability, witness and penalty arithmetic; model statistics not replayed",
+            "source_inputs": "completed/unfinished source chunks; no Oracle capacity supplied"
+          }
+        },
+        "assigned_bytes": [
+          252248064,
+          251068416
+        ],
+        "acked_payload_bytes": [
+          252248064,
+          251068416
+        ],
+        "transport_span_ns": 1494297,
+        "workload_finish_ns": 1498313,
+        "informative_samples": 0,
+        "tensor_numeric_correctness": "not simulated",
+        "payload_exact": true,
+        "fault_audit": {
+          "pass": true,
+          "expected_transitions": 0,
+          "apply_count": 0,
+          "revert_count": 0
+        },
+        "shadow_audit": {
+          "pass": true,
+          "decision_count": 7680,
+          "signal_affected_decisions": 0,
+          "emitted_reports": 1216,
+          "delivered_messages": 14592,
+          "limited_emitted_reports": 0
+        },
+        "diagnostics": {
+          "last_ack": {
+            "timestamp_ns": 1498307,
+            "src": 13,
+            "dst": 2,
+            "rail": 1,
+            "bytes": 65536
+          },
+          "switch_signal_overhead": {
+            "emitted_reports": 1216,
+            "delivered_subscriber_messages": 14592,
+            "emitted_payload_bytes_before_fanout": 38912,
+            "scheduled_subscriber_payload_bytes": 466944,
+            "delivered_subscriber_payload_bytes": 466944,
+            "switch_state_bytes_per_monitored_port": 48,
+            "packet_headers_and_data_plane_contention": "not simulated; logical payload accounting only"
+          }
+        },
+        "protocol_sha256": "52517996a5f6f68efaaae7b25acdcb0ee19a747c39cb68012944293e75e4754d",
+        "artifacts_sha256": {
+          "adaptive_decisions.csv": "fcc791f6bd2954cf8c612b28458c89765374a5419570e88326179253c51af780",
+          "adaptive_wait.csv": "ac3dfb79665785257437b60ef5bc3f20e0820f67d814c9884f57fce9f9903d01",
+          "alarm_telemetry.csv": "03b2586349e1b7f4f5936ed6bb59f9fb61d3aae0639bdec11cac11dee6771e52",
+          "chunk_feedback.csv": "735695aee04583a5965a4ce29ca4dcb7e078bab5c8ac40573e8fe9f549ab5282",
+          "collective_telemetry.csv": "13c6a50aa007a56943d215be514b6e7cc72d23504a86f183331f7eacf74e9c79",
+          "collective_transaction.csv": "c5aa1bc1436b4a2e7edb2a1d0b66515e1644d07de4b8a5d2743d3f94b9d77b56",
+          "ecmp_route_candidates.csv": "ec673a7fb9ea508977fa4861466c99b26831423e2140a683f61f4a70c615108f",
+          "fault_application_telemetry.csv": "f75c67c46a2e47ff161a2006d06da5055db6fd3ad5b74f0e78fd493f697350cb",
+          "link_map.csv": "44dca267250508a8af7e6e43899dabed51cf3468d633557288e7f788e7eefb16",
+          "nic_telemetry.csv": "a63a22344aa7c37087ac6ffb1b8e3e18075efcf83895beb3a0431dcc1907f766",
+          "rdma_wc_telemetry.csv": "62ddab90dea78bab57ebda476114d65b489cc291426371353e051ddc9027591b",
+          "recovery_telemetry.csv": "ae6c6cfd31e9818cb172b8cb774fc4c3b6b364d0abf5f2abd591f0ea63251a16",
+          "run_lifecycle.csv": "0204296f5b442f53d5820c7d9a3b09aa3041c52f5a89574aeca214017c78e7a2",
+          "split_events.csv": "8a72360d0ffc21e82810a8d8f0f2e0168990afdac6aeff493eba492ae248eccc",
+          "split_samples.csv": "42e67147429078a2d5b3206a82792c6e0c5c3a21cfbbf27bab7c280065e2a728",
+          "switch_signal_samples.csv": "556c3f364d09e36354c0e991f7b5a2690573445853b25f559d91bea74d6e240c",
+          "switch_signals.csv": "84df3c894c069670be4483ce377a981e674083207201fc44e61d5ddc24b4e872",
+          "switch_telemetry.csv": "1644cd58a098c18fbeecbd0016eb88b2f41f17125716831df2d15e60427b18a3",
+          "training_source_port_allocator.csv": "cd594de09fc25271bca589a319175adb5bcc32ae8a9eb2349bb7c6b2883b5c08",
+          "manifest.json": "1e48173be656543264035c7a6a6253c48cf8ec7e648492f3b74e4a09b8e3d8df",
+          "exit_code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+        }
+      },
+      "reference_finish_ns": {
+        "B11": 1501307,
+        "B12_ideal": 1498313
+      },
+      "comparison": {
+        "B11": {
+          "delta_ns": -2994,
+          "time_change_pct": -0.19942623327540154,
+          "same_completion_ns": false
+        },
+        "B12_ideal": {
+          "delta_ns": 0,
+          "time_change_pct": 0.0,
+          "same_completion_ns": true
+        }
+      }
+    },
+    "standard_42": {
+      "result": {
+        "pass": true,
+        "pending_chunks": 0,
+        "chunk_feedback": {
+          "pass": true,
+          "probes": [
+            {
+              "src": 0,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5040363028421304
+            },
+            {
+              "src": 1,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 2,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 3,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 4,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5037475533489283
+            },
+            {
+              "src": 5,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 6,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 7,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 8,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 9,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 10,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 11,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 12,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 13,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 14,
+              "bytes": 65536,
+              "A_elapsed_ns": 10576,
+              "B_elapsed_ns": 10371,
+              "A_weight": 0.49510669785649497
+            },
+            {
+              "src": 15,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            }
+          ],
+          "completion_samples": 7680,
+          "adaptive": {
+            "pass": true,
+            "policy": "B12",
+            "decision_count": 7680,
+            "wait_observations": 20398,
+            "wait_penalty_rows": 256,
+            "wait_timer_pairs": 2519,
+            "wait_affected_decisions": 98,
+            "signal_affected_decisions": 0,
+            "signal": {
+              "enabled": true,
+              "actuate": false,
+              "sample_ns": 10000,
+              "delay_ns": 0,
+              "ttl_ns": 50000,
+              "heartbeat_ns": 40000,
+              "sample_count": 6208,
+              "port_emits": 1588,
+              "deliveries": 19056,
+              "emitted_logical_payload_bytes": 50816,
+              "delivered_logical_payload_bytes": 609792,
+              "subscribed_logical_payload_bytes": 609792,
+              "deliveries_before_workload_finish": 19056,
+              "state_factor_changes": 239,
+              "monitored_access_ports": 32,
+              "switch_state_budget_bytes_per_port": 48,
+              "control_transport": "fixed-latency reliable logical messages; no data-plane contention"
+            },
+            "conditional_threshold_audit": "sample availability, witness and penalty arithmetic; model statistics not replayed",
+            "source_inputs": "completed/unfinished source chunks; no Oracle capacity supplied"
+          }
+        },
+        "assigned_bytes": [
+          250019840,
+          253296640
+        ],
+        "acked_payload_bytes": [
+          250019840,
+          253296640
+        ],
+        "transport_span_ns": 1939291,
+        "workload_finish_ns": 1943307,
+        "informative_samples": 0,
+        "tensor_numeric_correctness": "not simulated",
+        "payload_exact": true,
+        "fault_audit": {
+          "pass": true,
+          "expected_transitions": 8,
+          "apply_count": 8,
+          "revert_count": 0
+        },
+        "shadow_audit": {
+          "pass": true,
+          "decision_count": 7680,
+          "signal_affected_decisions": 0,
+          "emitted_reports": 1588,
+          "delivered_messages": 19056,
+          "limited_emitted_reports": 71
+        },
+        "diagnostics": {
+          "last_ack": {
+            "timestamp_ns": 1943301,
+            "src": 0,
+            "dst": 5,
+            "rail": 1,
+            "bytes": 65536
+          },
+          "switch_signal_overhead": {
+            "emitted_reports": 1588,
+            "delivered_subscriber_messages": 19056,
+            "emitted_payload_bytes_before_fanout": 50816,
+            "scheduled_subscriber_payload_bytes": 609792,
+            "delivered_subscriber_payload_bytes": 609792,
+            "switch_state_bytes_per_monitored_port": 48,
+            "packet_headers_and_data_plane_contention": "not simulated; logical payload accounting only"
+          },
+          "assigned_before_fault_bytes": 344588288,
+          "assigned_before_fault_fraction": 0.6846354166666667,
+          "post_fault_assigned_bytes_on_affected_access_paths": 67502080
+        },
+        "protocol_sha256": "52517996a5f6f68efaaae7b25acdcb0ee19a747c39cb68012944293e75e4754d",
+        "artifacts_sha256": {
+          "adaptive_decisions.csv": "ce40a21958b619bff70a2ce3c465598d749aca7a40fb310c4ec83cb0cbbb6d6f",
+          "adaptive_wait.csv": "d0411c8b7615b8efb1484f50f72db34e9ea95219ca8663dd0282dc0d94fd3718",
+          "alarm_telemetry.csv": "03b2586349e1b7f4f5936ed6bb59f9fb61d3aae0639bdec11cac11dee6771e52",
+          "chunk_feedback.csv": "a4f3526313a79ab5887db4dc057177750204436eeaa85e3aa1b6e6200db09d91",
+          "collective_telemetry.csv": "ccef8e659222d8d8d768b2000ca7db8d3708be02611bf19edad68457ac4fa8e5",
+          "collective_transaction.csv": "316200ee4455353d72e6b9e4e7ba8644b0634c0c3ace3f9d58c4ad82ad31b37f",
+          "ecmp_route_candidates.csv": "ec673a7fb9ea508977fa4861466c99b26831423e2140a683f61f4a70c615108f",
+          "fault_application_telemetry.csv": "ca5fdc6ed434cfa67549c6db2ecabf6f908ac921618646d9986e8ad329a5b962",
+          "link_map.csv": "44dca267250508a8af7e6e43899dabed51cf3468d633557288e7f788e7eefb16",
+          "nic_telemetry.csv": "a63a22344aa7c37087ac6ffb1b8e3e18075efcf83895beb3a0431dcc1907f766",
+          "rdma_wc_telemetry.csv": "4f8622d2642aa93b812c77a0ae6ac15d46a014faf3f377837502943438ddb263",
+          "recovery_telemetry.csv": "ae6c6cfd31e9818cb172b8cb774fc4c3b6b364d0abf5f2abd591f0ea63251a16",
+          "run_lifecycle.csv": "d7435a45fcdafdb38bff1e55f65fbe65c96a53bdb541d3248d111c76befcfc1e",
+          "split_events.csv": "860b0cffb463053c0e499fe946d7cec82b6ccb1fed3c1356782250ebf7b10162",
+          "split_samples.csv": "42e67147429078a2d5b3206a82792c6e0c5c3a21cfbbf27bab7c280065e2a728",
+          "switch_signal_samples.csv": "69f07af2ae2a48e5eefc462fdd0dcd208785797fa6b6b404fa0c2206225611e4",
+          "switch_signals.csv": "3b10c31434d4963d758da25773a354f6fe687f5dfafc7b96fec9624bc5782114",
+          "switch_telemetry.csv": "1644cd58a098c18fbeecbd0016eb88b2f41f17125716831df2d15e60427b18a3",
+          "training_source_port_allocator.csv": "cd594de09fc25271bca589a319175adb5bcc32ae8a9eb2349bb7c6b2883b5c08",
+          "manifest.json": "8384c7ec23c46d7973c8a1d4e89aa2a8ef7cae45cfa0aa2f3c195282de612b71",
+          "exit_code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+        }
+      },
+      "reference_finish_ns": {
+        "B11": 1997876,
+        "B12_ideal": 1953260
+      },
+      "comparison": {
+        "B11": {
+          "delta_ns": -54569,
+          "time_change_pct": -2.7313506944374955,
+          "same_completion_ns": false
+        },
+        "B12_ideal": {
+          "delta_ns": -9953,
+          "time_change_pct": -0.509558379324826,
+          "same_completion_ns": false
+        }
+      }
+    },
+    "standard_43": {
+      "result": {
+        "pass": true,
+        "pending_chunks": 0,
+        "chunk_feedback": {
+          "pass": true,
+          "probes": [
+            {
+              "src": 0,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5040363028421304
+            },
+            {
+              "src": 1,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 2,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 3,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 4,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5037475533489283
+            },
+            {
+              "src": 5,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 6,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 7,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 8,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 9,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 10,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 11,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 12,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 13,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 14,
+              "bytes": 65536,
+              "A_elapsed_ns": 10576,
+              "B_elapsed_ns": 10371,
+              "A_weight": 0.49510669785649497
+            },
+            {
+              "src": 15,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            }
+          ],
+          "completion_samples": 7680,
+          "adaptive": {
+            "pass": true,
+            "policy": "B12",
+            "decision_count": 7680,
+            "wait_observations": 20486,
+            "wait_penalty_rows": 525,
+            "wait_timer_pairs": 2563,
+            "wait_affected_decisions": 264,
+            "signal_affected_decisions": 0,
+            "signal": {
+              "enabled": true,
+              "actuate": false,
+              "sample_ns": 10000,
+              "delay_ns": 0,
+              "ttl_ns": 50000,
+              "heartbeat_ns": 40000,
+              "sample_count": 6016,
+              "port_emits": 1533,
+              "deliveries": 18396,
+              "emitted_logical_payload_bytes": 49056,
+              "delivered_logical_payload_bytes": 588672,
+              "subscribed_logical_payload_bytes": 588672,
+              "deliveries_before_workload_finish": 18396,
+              "state_factor_changes": 276,
+              "monitored_access_ports": 32,
+              "switch_state_budget_bytes_per_port": 48,
+              "control_transport": "fixed-latency reliable logical messages; no data-plane contention"
+            },
+            "conditional_threshold_audit": "sample availability, witness and penalty arithmetic; model statistics not replayed",
+            "source_inputs": "completed/unfinished source chunks; no Oracle capacity supplied"
+          }
+        },
+        "assigned_bytes": [
+          251002880,
+          252313600
+        ],
+        "acked_payload_bytes": [
+          251002880,
+          252313600
+        ],
+        "transport_span_ns": 1883552,
+        "workload_finish_ns": 1887568,
+        "informative_samples": 0,
+        "tensor_numeric_correctness": "not simulated",
+        "payload_exact": true,
+        "fault_audit": {
+          "pass": true,
+          "expected_transitions": 8,
+          "apply_count": 8,
+          "revert_count": 0
+        },
+        "shadow_audit": {
+          "pass": true,
+          "decision_count": 7680,
+          "signal_affected_decisions": 0,
+          "emitted_reports": 1533,
+          "delivered_messages": 18396,
+          "limited_emitted_reports": 80
+        },
+        "diagnostics": {
+          "last_ack": {
+            "timestamp_ns": 1887562,
+            "src": 4,
+            "dst": 9,
+            "rail": 1,
+            "bytes": 65536
+          },
+          "switch_signal_overhead": {
+            "emitted_reports": 1533,
+            "delivered_subscriber_messages": 18396,
+            "emitted_payload_bytes_before_fanout": 49056,
+            "scheduled_subscriber_payload_bytes": 588672,
+            "delivered_subscriber_payload_bytes": 588672,
+            "switch_state_bytes_per_monitored_port": 48,
+            "packet_headers_and_data_plane_contention": "not simulated; logical payload accounting only"
+          },
+          "assigned_before_fault_bytes": 344588288,
+          "assigned_before_fault_fraction": 0.6846354166666667,
+          "post_fault_assigned_bytes_on_affected_access_paths": 45809664
+        },
+        "protocol_sha256": "52517996a5f6f68efaaae7b25acdcb0ee19a747c39cb68012944293e75e4754d",
+        "artifacts_sha256": {
+          "adaptive_decisions.csv": "bd623fc5d89e9a4fc796b5cbdfb8c710607a97e5e202e0579653c4cd3d36a72b",
+          "adaptive_wait.csv": "c12ff8cfe214f8a40790134b8df1d5a1dae37a46e53520713d5fe06d12d9d3ef",
+          "alarm_telemetry.csv": "03b2586349e1b7f4f5936ed6bb59f9fb61d3aae0639bdec11cac11dee6771e52",
+          "chunk_feedback.csv": "ecee2b6d1dce60c9b9408048e6d44653caacf346014a81594035a3471d6efa5a",
+          "collective_telemetry.csv": "f6ee7778b3ac2f33dcf40531987fd32ce1116e5442ed9a65098ed3c8ec859e5e",
+          "collective_transaction.csv": "090ea8c122201003f48c8ea3cceef2b0bae008457bc3fce90be2ffc31a4eac75",
+          "ecmp_route_candidates.csv": "ec673a7fb9ea508977fa4861466c99b26831423e2140a683f61f4a70c615108f",
+          "fault_application_telemetry.csv": "9637719747296812fe5e7deafd9a1243a067ddc80673c0e03addac9861a01756",
+          "link_map.csv": "44dca267250508a8af7e6e43899dabed51cf3468d633557288e7f788e7eefb16",
+          "nic_telemetry.csv": "a63a22344aa7c37087ac6ffb1b8e3e18075efcf83895beb3a0431dcc1907f766",
+          "rdma_wc_telemetry.csv": "bc5f738346e837e419f7d249239af74d76f79a5ac77290f63cd0355f9f94d8ad",
+          "recovery_telemetry.csv": "ae6c6cfd31e9818cb172b8cb774fc4c3b6b364d0abf5f2abd591f0ea63251a16",
+          "run_lifecycle.csv": "e4119c93b51d111dd35e9dc441b69fb57536df78d598cae1b2fd4818697b3f8c",
+          "split_events.csv": "c116d90a7f1bbd503dbb9d717c6989d6b3e3a64b887d965249f0f2998e4cb3b1",
+          "split_samples.csv": "42e67147429078a2d5b3206a82792c6e0c5c3a21cfbbf27bab7c280065e2a728",
+          "switch_signal_samples.csv": "89e38c489990ee21637da352b6c2c787f7fc1f5e42ce08c05683c17006d8eb3d",
+          "switch_signals.csv": "b29f8696395170870525b13ed7a79535e03b7cb41302bd59fa3632422eb1c046",
+          "switch_telemetry.csv": "1644cd58a098c18fbeecbd0016eb88b2f41f17125716831df2d15e60427b18a3",
+          "training_source_port_allocator.csv": "cd594de09fc25271bca589a319175adb5bcc32ae8a9eb2349bb7c6b2883b5c08",
+          "manifest.json": "9fe9b12e49ce79cfcc62e4ece6f2d8768b87888da009746b47586200de04c2a2",
+          "exit_code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+        }
+      },
+      "reference_finish_ns": {
+        "B11": 1891412,
+        "B12_ideal": 1893086
+      },
+      "comparison": {
+        "B11": {
+          "delta_ns": -3844,
+          "time_change_pct": -0.203234409002373,
+          "same_completion_ns": false
+        },
+        "B12_ideal": {
+          "delta_ns": -5518,
+          "time_change_pct": -0.29148173933989385,
+          "same_completion_ns": false
+        }
+      }
+    },
+    "standard_44": {
+      "result": {
+        "pass": true,
+        "pending_chunks": 0,
+        "chunk_feedback": {
+          "pass": true,
+          "probes": [
+            {
+              "src": 0,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5040363028421304
+            },
+            {
+              "src": 1,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 2,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 3,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 4,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5037475533489283
+            },
+            {
+              "src": 5,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 6,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 7,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 8,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 9,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 10,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 11,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 12,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 13,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 14,
+              "bytes": 65536,
+              "A_elapsed_ns": 10576,
+              "B_elapsed_ns": 10371,
+              "A_weight": 0.49510669785649497
+            },
+            {
+              "src": 15,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            }
+          ],
+          "completion_samples": 7680,
+          "adaptive": {
+            "pass": true,
+            "policy": "B12",
+            "decision_count": 7680,
+            "wait_observations": 20348,
+            "wait_penalty_rows": 382,
+            "wait_timer_pairs": 2494,
+            "wait_affected_decisions": 170,
+            "signal_affected_decisions": 0,
+            "signal": {
+              "enabled": true,
+              "actuate": false,
+              "sample_ns": 10000,
+              "delay_ns": 0,
+              "ttl_ns": 50000,
+              "heartbeat_ns": 40000,
+              "sample_count": 5920,
+              "port_emits": 1512,
+              "deliveries": 18144,
+              "emitted_logical_payload_bytes": 48384,
+              "delivered_logical_payload_bytes": 580608,
+              "subscribed_logical_payload_bytes": 580608,
+              "deliveries_before_workload_finish": 18144,
+              "state_factor_changes": 172,
+              "monitored_access_ports": 32,
+              "switch_state_budget_bytes_per_port": 48,
+              "control_transport": "fixed-latency reliable logical messages; no data-plane contention"
+            },
+            "conditional_threshold_audit": "sample availability, witness and penalty arithmetic; model statistics not replayed",
+            "source_inputs": "completed/unfinished source chunks; no Oracle capacity supplied"
+          }
+        },
+        "assigned_bytes": [
+          256507904,
+          246808576
+        ],
+        "acked_payload_bytes": [
+          256507904,
+          246808576
+        ],
+        "transport_span_ns": 1847837,
+        "workload_finish_ns": 1851853,
+        "informative_samples": 0,
+        "tensor_numeric_correctness": "not simulated",
+        "payload_exact": true,
+        "fault_audit": {
+          "pass": true,
+          "expected_transitions": 8,
+          "apply_count": 8,
+          "revert_count": 0
+        },
+        "shadow_audit": {
+          "pass": true,
+          "decision_count": 7680,
+          "signal_affected_decisions": 0,
+          "emitted_reports": 1512,
+          "delivered_messages": 18144,
+          "limited_emitted_reports": 48
+        },
+        "diagnostics": {
+          "last_ack": {
+            "timestamp_ns": 1851847,
+            "src": 10,
+            "dst": 15,
+            "rail": 1,
+            "bytes": 65536
+          },
+          "switch_signal_overhead": {
+            "emitted_reports": 1512,
+            "delivered_subscriber_messages": 18144,
+            "emitted_payload_bytes_before_fanout": 48384,
+            "scheduled_subscriber_payload_bytes": 580608,
+            "delivered_subscriber_payload_bytes": 580608,
+            "switch_state_bytes_per_monitored_port": 48,
+            "packet_headers_and_data_plane_contention": "not simulated; logical payload accounting only"
+          },
+          "assigned_before_fault_bytes": 344588288,
+          "assigned_before_fault_fraction": 0.6846354166666667,
+          "post_fault_assigned_bytes_on_affected_access_paths": 59899904
+        },
+        "protocol_sha256": "52517996a5f6f68efaaae7b25acdcb0ee19a747c39cb68012944293e75e4754d",
+        "artifacts_sha256": {
+          "adaptive_decisions.csv": "f24cfcead7861220b5a3f7c19429dca4c0874c1b0add2c5d58473c6b6063407e",
+          "adaptive_wait.csv": "6ab282b7dd59420719a627278577165ae311ccb67b30d33486bc2b3b479243b9",
+          "alarm_telemetry.csv": "03b2586349e1b7f4f5936ed6bb59f9fb61d3aae0639bdec11cac11dee6771e52",
+          "chunk_feedback.csv": "8591cbc718de4c49015e7855b5a64c89df9be794d9792e1dc8de41aef5bc0849",
+          "collective_telemetry.csv": "c71a986e563f37055e9e7e0da53f8f01ef49d6fed976b5a794fb780cf98ad45b",
+          "collective_transaction.csv": "7f75f7b25e99d7731ccdcd6f1d9caa8950e6768c9f85d7be926483a4b26787f1",
+          "ecmp_route_candidates.csv": "ec673a7fb9ea508977fa4861466c99b26831423e2140a683f61f4a70c615108f",
+          "fault_application_telemetry.csv": "a8906007ac455336df4627df2b13779e028d8bb213a76f7f0bf8c946e69b4e09",
+          "link_map.csv": "44dca267250508a8af7e6e43899dabed51cf3468d633557288e7f788e7eefb16",
+          "nic_telemetry.csv": "a63a22344aa7c37087ac6ffb1b8e3e18075efcf83895beb3a0431dcc1907f766",
+          "rdma_wc_telemetry.csv": "1cd15c8433723b91a5eb32971708e6b8161c8fed58447f6f288f8ea0fdc9b19f",
+          "recovery_telemetry.csv": "ae6c6cfd31e9818cb172b8cb774fc4c3b6b364d0abf5f2abd591f0ea63251a16",
+          "run_lifecycle.csv": "bfc9248cf6b3495c7b5283b9ebfaced12ef154a32466047c5348624267dca4fc",
+          "split_events.csv": "1077de1ca85169fe333213799222427c2feebd0bd4d637c364cf7fd9584605c6",
+          "split_samples.csv": "42e67147429078a2d5b3206a82792c6e0c5c3a21cfbbf27bab7c280065e2a728",
+          "switch_signal_samples.csv": "3cb7fb6215eebce61d2bb45c924fc1f429129ae7a15a949dee8f8a09ab11cf9f",
+          "switch_signals.csv": "b02ca96ed2bd59000e9878b16af63dc0e83da850a4976ecf3c5f665166b1aa59",
+          "switch_telemetry.csv": "1644cd58a098c18fbeecbd0016eb88b2f41f17125716831df2d15e60427b18a3",
+          "training_source_port_allocator.csv": "cd594de09fc25271bca589a319175adb5bcc32ae8a9eb2349bb7c6b2883b5c08",
+          "manifest.json": "d6ad86931547fecff8e4d2eedf858fcc24748487689abaf690d80bc05b951926",
+          "exit_code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+        }
+      },
+      "reference_finish_ns": {
+        "B11": 1966846,
+        "B12_ideal": 1806673
+      },
+      "comparison": {
+        "B11": {
+          "delta_ns": -114993,
+          "time_change_pct": -5.8465685671374334,
+          "same_completion_ns": false
+        },
+        "B12_ideal": {
+          "delta_ns": 45180,
+          "time_change_pct": 2.500729240986055,
+          "same_completion_ns": false
+        }
+      }
+    }
+  },
+  "complete": true,
+  "pass": true
+}

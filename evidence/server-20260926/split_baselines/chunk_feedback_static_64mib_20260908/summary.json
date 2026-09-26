@@ -1,0 +1,315 @@
+{
+  "results": {
+    "B2": {
+      "pass": true,
+      "pending_chunks": 0,
+      "chunk_feedback": null,
+      "assigned_bytes": [
+        399704064,
+        103612416
+      ],
+      "acked_payload_bytes": [
+        399704064,
+        103612416
+      ],
+      "transport_span_ns": 2169972,
+      "workload_finish_ns": 2173988,
+      "informative_samples": 19,
+      "tensor_numeric_correctness": "not simulated"
+    },
+    "B6": {
+      "pass": true,
+      "pending_chunks": 0,
+      "chunk_feedback": null,
+      "assigned_bytes": [
+        402128896,
+        101187584
+      ],
+      "acked_payload_bytes": [
+        402128896,
+        101187584
+      ],
+      "transport_span_ns": 2346495,
+      "workload_finish_ns": 2350511,
+      "informative_samples": 19,
+      "tensor_numeric_correctness": "not simulated"
+    },
+    "B7": {
+      "pass": true,
+      "pending_chunks": 0,
+      "chunk_feedback": {
+        "pass": true,
+        "probes": [
+          {
+            "src": 0,
+            "bytes": 65536,
+            "A_elapsed_ns": 11178,
+            "B_elapsed_ns": 29628,
+            "A_weight": 0.7260696956329952
+          },
+          {
+            "src": 1,
+            "bytes": 65536,
+            "A_elapsed_ns": 11178,
+            "B_elapsed_ns": 29541,
+            "A_weight": 0.7254844175937523
+          },
+          {
+            "src": 2,
+            "bytes": 65536,
+            "A_elapsed_ns": 10375,
+            "B_elapsed_ns": 29565,
+            "A_weight": 0.7402353530295444
+          },
+          {
+            "src": 3,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 29730,
+            "A_weight": 0.7411562336399671
+          },
+          {
+            "src": 4,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 28637,
+            "A_weight": 0.7339056893900564
+          },
+          {
+            "src": 5,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 28552,
+            "A_weight": 0.7333247720559908
+          },
+          {
+            "src": 6,
+            "bytes": 65536,
+            "A_elapsed_ns": 11194,
+            "B_elapsed_ns": 28616,
+            "A_weight": 0.7188143682491837
+          },
+          {
+            "src": 7,
+            "bytes": 65536,
+            "A_elapsed_ns": 11194,
+            "B_elapsed_ns": 28552,
+            "A_weight": 0.7183615961354601
+          },
+          {
+            "src": 8,
+            "bytes": 65536,
+            "A_elapsed_ns": 11178,
+            "B_elapsed_ns": 29644,
+            "A_weight": 0.726177061388467
+          },
+          {
+            "src": 9,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 28821,
+            "A_weight": 0.735154576063667
+          },
+          {
+            "src": 10,
+            "bytes": 65536,
+            "A_elapsed_ns": 10375,
+            "B_elapsed_ns": 28837,
+            "A_weight": 0.735412628787106
+          },
+          {
+            "src": 11,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 28664,
+            "A_weight": 0.7340896867877174
+          },
+          {
+            "src": 12,
+            "bytes": 65536,
+            "A_elapsed_ns": 10375,
+            "B_elapsed_ns": 28552,
+            "A_weight": 0.7334754797441365
+          },
+          {
+            "src": 13,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 28536,
+            "A_weight": 0.7332151391351268
+          },
+          {
+            "src": 14,
+            "bytes": 65536,
+            "A_elapsed_ns": 10564,
+            "B_elapsed_ns": 28456,
+            "A_weight": 0.729267042542286
+          },
+          {
+            "src": 15,
+            "bytes": 65536,
+            "A_elapsed_ns": 11178,
+            "B_elapsed_ns": 28813,
+            "A_weight": 0.7204871095996599
+          }
+        ],
+        "completion_samples": 7680
+      },
+      "assigned_bytes": [
+        368967680,
+        134348800
+      ],
+      "acked_payload_bytes": [
+        368967680,
+        134348800
+      ],
+      "transport_span_ns": 2905650,
+      "workload_finish_ns": 2909666,
+      "informative_samples": 17,
+      "tensor_numeric_correctness": "not simulated"
+    },
+    "B8": {
+      "pass": true,
+      "pending_chunks": 0,
+      "chunk_feedback": {
+        "pass": true,
+        "probes": [
+          {
+            "src": 0,
+            "bytes": 65536,
+            "A_elapsed_ns": 11178,
+            "B_elapsed_ns": 29628,
+            "A_weight": 0.7260696956329952
+          },
+          {
+            "src": 1,
+            "bytes": 65536,
+            "A_elapsed_ns": 11178,
+            "B_elapsed_ns": 29541,
+            "A_weight": 0.7254844175937523
+          },
+          {
+            "src": 2,
+            "bytes": 65536,
+            "A_elapsed_ns": 10375,
+            "B_elapsed_ns": 29565,
+            "A_weight": 0.7402353530295444
+          },
+          {
+            "src": 3,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 29730,
+            "A_weight": 0.7411562336399671
+          },
+          {
+            "src": 4,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 28637,
+            "A_weight": 0.7339056893900564
+          },
+          {
+            "src": 5,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 28552,
+            "A_weight": 0.7333247720559908
+          },
+          {
+            "src": 6,
+            "bytes": 65536,
+            "A_elapsed_ns": 11194,
+            "B_elapsed_ns": 28616,
+            "A_weight": 0.7188143682491837
+          },
+          {
+            "src": 7,
+            "bytes": 65536,
+            "A_elapsed_ns": 11194,
+            "B_elapsed_ns": 28552,
+            "A_weight": 0.7183615961354601
+          },
+          {
+            "src": 8,
+            "bytes": 65536,
+            "A_elapsed_ns": 11178,
+            "B_elapsed_ns": 29644,
+            "A_weight": 0.726177061388467
+          },
+          {
+            "src": 9,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 28821,
+            "A_weight": 0.735154576063667
+          },
+          {
+            "src": 10,
+            "bytes": 65536,
+            "A_elapsed_ns": 10375,
+            "B_elapsed_ns": 28837,
+            "A_weight": 0.735412628787106
+          },
+          {
+            "src": 11,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 28664,
+            "A_weight": 0.7340896867877174
+          },
+          {
+            "src": 12,
+            "bytes": 65536,
+            "A_elapsed_ns": 10375,
+            "B_elapsed_ns": 28552,
+            "A_weight": 0.7334754797441365
+          },
+          {
+            "src": 13,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 28536,
+            "A_weight": 0.7332151391351268
+          },
+          {
+            "src": 14,
+            "bytes": 65536,
+            "A_elapsed_ns": 10564,
+            "B_elapsed_ns": 28456,
+            "A_weight": 0.729267042542286
+          },
+          {
+            "src": 15,
+            "bytes": 65536,
+            "A_elapsed_ns": 11178,
+            "B_elapsed_ns": 28813,
+            "A_weight": 0.7204871095996599
+          }
+        ],
+        "completion_samples": 7680
+      },
+      "assigned_bytes": [
+        393150464,
+        110166016
+      ],
+      "acked_payload_bytes": [
+        393150464,
+        110166016
+      ],
+      "transport_span_ns": 2368808,
+      "workload_finish_ns": 2372824,
+      "informative_samples": 19,
+      "tensor_numeric_correctness": "not simulated"
+    }
+  },
+  "scope": "true16_chunk_qp_split",
+  "GP": false,
+  "same_payload_across_policies": true,
+  "B5": {
+    "fidelity": "conditional_independent_pair_fluid_bound",
+    "available": false,
+    "full_allreduce_bound": false,
+    "pairs": []
+  }
+}

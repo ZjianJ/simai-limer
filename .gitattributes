@@ -1,2 +1,5 @@
 *.sh text eol=lf
 *.patch text eol=lf
+*.py text eol=lf
+configs/** text eol=lf
+evidence/** text eol=lf

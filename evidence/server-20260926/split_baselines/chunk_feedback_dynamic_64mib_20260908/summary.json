@@ -1,0 +1,315 @@
+{
+  "results": {
+    "B2": {
+      "pass": true,
+      "pending_chunks": 0,
+      "chunk_feedback": null,
+      "assigned_bytes": [
+        251854848,
+        251461632
+      ],
+      "acked_payload_bytes": [
+        251854848,
+        251461632
+      ],
+      "transport_span_ns": 2523469,
+      "workload_finish_ns": 2527485,
+      "informative_samples": 13,
+      "tensor_numeric_correctness": "not simulated"
+    },
+    "B6": {
+      "pass": true,
+      "pending_chunks": 0,
+      "chunk_feedback": null,
+      "assigned_bytes": [
+        298123264,
+        205193216
+      ],
+      "acked_payload_bytes": [
+        298123264,
+        205193216
+      ],
+      "transport_span_ns": 1818192,
+      "workload_finish_ns": 1822208,
+      "informative_samples": 0,
+      "tensor_numeric_correctness": "not simulated"
+    },
+    "B7": {
+      "pass": true,
+      "pending_chunks": 0,
+      "chunk_feedback": {
+        "pass": true,
+        "probes": [
+          {
+            "src": 0,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10552,
+            "A_weight": 0.5040363028421304
+          },
+          {
+            "src": 1,
+            "bytes": 65536,
+            "A_elapsed_ns": 10375,
+            "B_elapsed_ns": 10395,
+            "A_weight": 0.5004814636494944
+          },
+          {
+            "src": 2,
+            "bytes": 65536,
+            "A_elapsed_ns": 10375,
+            "B_elapsed_ns": 10395,
+            "A_weight": 0.5004814636494944
+          },
+          {
+            "src": 3,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10387,
+            "A_weight": 0.5000962927298989
+          },
+          {
+            "src": 4,
+            "bytes": 65536,
+            "A_elapsed_ns": 10395,
+            "B_elapsed_ns": 10552,
+            "A_weight": 0.5037475533489283
+          },
+          {
+            "src": 5,
+            "bytes": 65536,
+            "A_elapsed_ns": 10395,
+            "B_elapsed_ns": 10375,
+            "A_weight": 0.4995185363505055
+          },
+          {
+            "src": 6,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10387,
+            "A_weight": 0.5000962927298989
+          },
+          {
+            "src": 7,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10387,
+            "A_weight": 0.5000962927298989
+          },
+          {
+            "src": 8,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10383,
+            "A_weight": 0.5
+          },
+          {
+            "src": 9,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10387,
+            "A_weight": 0.5000962927298989
+          },
+          {
+            "src": 10,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10387,
+            "A_weight": 0.5000962927298989
+          },
+          {
+            "src": 11,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10383,
+            "A_weight": 0.5
+          },
+          {
+            "src": 12,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10383,
+            "A_weight": 0.5
+          },
+          {
+            "src": 13,
+            "bytes": 65536,
+            "A_elapsed_ns": 10395,
+            "B_elapsed_ns": 10375,
+            "A_weight": 0.4995185363505055
+          },
+          {
+            "src": 14,
+            "bytes": 65536,
+            "A_elapsed_ns": 10576,
+            "B_elapsed_ns": 10371,
+            "A_weight": 0.49510669785649497
+          },
+          {
+            "src": 15,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10383,
+            "A_weight": 0.5
+          }
+        ],
+        "completion_samples": 7680
+      },
+      "assigned_bytes": [
+        251789312,
+        251527168
+      ],
+      "acked_payload_bytes": [
+        251789312,
+        251527168
+      ],
+      "transport_span_ns": 2613736,
+      "workload_finish_ns": 2617752,
+      "informative_samples": 10,
+      "tensor_numeric_correctness": "not simulated"
+    },
+    "B8": {
+      "pass": true,
+      "pending_chunks": 0,
+      "chunk_feedback": {
+        "pass": true,
+        "probes": [
+          {
+            "src": 0,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10552,
+            "A_weight": 0.5040363028421304
+          },
+          {
+            "src": 1,
+            "bytes": 65536,
+            "A_elapsed_ns": 10375,
+            "B_elapsed_ns": 10395,
+            "A_weight": 0.5004814636494944
+          },
+          {
+            "src": 2,
+            "bytes": 65536,
+            "A_elapsed_ns": 10375,
+            "B_elapsed_ns": 10395,
+            "A_weight": 0.5004814636494944
+          },
+          {
+            "src": 3,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10387,
+            "A_weight": 0.5000962927298989
+          },
+          {
+            "src": 4,
+            "bytes": 65536,
+            "A_elapsed_ns": 10395,
+            "B_elapsed_ns": 10552,
+            "A_weight": 0.5037475533489283
+          },
+          {
+            "src": 5,
+            "bytes": 65536,
+            "A_elapsed_ns": 10395,
+            "B_elapsed_ns": 10375,
+            "A_weight": 0.4995185363505055
+          },
+          {
+            "src": 6,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10387,
+            "A_weight": 0.5000962927298989
+          },
+          {
+            "src": 7,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10387,
+            "A_weight": 0.5000962927298989
+          },
+          {
+            "src": 8,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10383,
+            "A_weight": 0.5
+          },
+          {
+            "src": 9,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10387,
+            "A_weight": 0.5000962927298989
+          },
+          {
+            "src": 10,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10387,
+            "A_weight": 0.5000962927298989
+          },
+          {
+            "src": 11,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10383,
+            "A_weight": 0.5
+          },
+          {
+            "src": 12,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10383,
+            "A_weight": 0.5
+          },
+          {
+            "src": 13,
+            "bytes": 65536,
+            "A_elapsed_ns": 10395,
+            "B_elapsed_ns": 10375,
+            "A_weight": 0.4995185363505055
+          },
+          {
+            "src": 14,
+            "bytes": 65536,
+            "A_elapsed_ns": 10576,
+            "B_elapsed_ns": 10371,
+            "A_weight": 0.49510669785649497
+          },
+          {
+            "src": 15,
+            "bytes": 65536,
+            "A_elapsed_ns": 10383,
+            "B_elapsed_ns": 10383,
+            "A_weight": 0.5
+          }
+        ],
+        "completion_samples": 7680
+      },
+      "assigned_bytes": [
+        285868032,
+        217448448
+      ],
+      "acked_payload_bytes": [
+        285868032,
+        217448448
+      ],
+      "transport_span_ns": 1745192,
+      "workload_finish_ns": 1749208,
+      "informative_samples": 0,
+      "tensor_numeric_correctness": "not simulated"
+    }
+  },
+  "scope": "true16_chunk_qp_split",
+  "GP": false,
+  "same_payload_across_policies": true,
+  "B5": {
+    "fidelity": "conditional_independent_pair_fluid_bound",
+    "available": false,
+    "full_allreduce_bound": false,
+    "pairs": []
+  }
+}

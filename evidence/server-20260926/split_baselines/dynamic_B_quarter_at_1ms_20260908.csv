@@ -1,0 +1,17 @@
+fault_id,fault_type,target_link_id,start_time_ns,end_time_ns,severity,parameter_before,parameter_after,recovery_delay_ns
+split-static-B-0,service_degradation,L0-24,1000000,100000000,0.75,1,0.25,0
+split-static-B-1,service_degradation,L1-25,1000000,100000000,0.75,1,0.25,0
+split-static-B-2,service_degradation,L2-26,1000000,100000000,0.75,1,0.25,0
+split-static-B-3,service_degradation,L3-27,1000000,100000000,0.75,1,0.25,0
+split-static-B-4,service_degradation,L4-24,1000000,100000000,0.75,1,0.25,0
+split-static-B-5,service_degradation,L5-25,1000000,100000000,0.75,1,0.25,0
+split-static-B-6,service_degradation,L6-26,1000000,100000000,0.75,1,0.25,0
+split-static-B-7,service_degradation,L7-27,1000000,100000000,0.75,1,0.25,0
+split-static-B-8,service_degradation,L8-24,1000000,100000000,0.75,1,0.25,0
+split-static-B-9,service_degradation,L9-25,1000000,100000000,0.75,1,0.25,0
+split-static-B-10,service_degradation,L10-26,1000000,100000000,0.75,1,0.25,0
+split-static-B-11,service_degradation,L11-27,1000000,100000000,0.75,1,0.25,0
+split-static-B-12,service_degradation,L12-24,1000000,100000000,0.75,1,0.25,0
+split-static-B-13,service_degradation,L13-25,1000000,100000000,0.75,1,0.25,0
+split-static-B-14,service_degradation,L14-26,1000000,100000000,0.75,1,0.25,0
+split-static-B-15,service_degradation,L15-27,1000000,100000000,0.75,1,0.25,0

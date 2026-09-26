@@ -1,0 +1,327 @@
+{
+  "results": {
+    "calibration_0": {
+      "pass": true,
+      "pending_chunks": 0,
+      "assigned_bytes": [
+        503316480,
+        0
+      ],
+      "acked_payload_bytes": [
+        503316480,
+        0
+      ],
+      "transport_span_ns": 2757627,
+      "workload_finish_ns": 2761643,
+      "tensor_numeric_correctness": "not simulated"
+    },
+    "calibration_1": {
+      "pass": true,
+      "pending_chunks": 0,
+      "assigned_bytes": [
+        0,
+        503316480
+      ],
+      "acked_payload_bytes": [
+        0,
+        503316480
+      ],
+      "transport_span_ns": 10481163,
+      "workload_finish_ns": 10485179,
+      "tensor_numeric_correctness": "not simulated"
+    },
+    "B0": {
+      "pass": true,
+      "pending_chunks": 0,
+      "assigned_bytes": [
+        0,
+        503316480
+      ],
+      "acked_payload_bytes": [
+        0,
+        503316480
+      ],
+      "transport_span_ns": 10481163,
+      "workload_finish_ns": 10485179,
+      "tensor_numeric_correctness": "not simulated"
+    },
+    "B1": {
+      "pass": true,
+      "pending_chunks": 0,
+      "assigned_bytes": [
+        251658240,
+        251658240
+      ],
+      "acked_payload_bytes": [
+        251658240,
+        251658240
+      ],
+      "transport_span_ns": 5106268,
+      "workload_finish_ns": 5110284,
+      "tensor_numeric_correctness": "not simulated"
+    },
+    "B2": {
+      "pass": true,
+      "pending_chunks": 0,
+      "assigned_bytes": [
+        399704064,
+        103612416
+      ],
+      "acked_payload_bytes": [
+        399704064,
+        103612416
+      ],
+      "transport_span_ns": 2169972,
+      "workload_finish_ns": 2173988,
+      "tensor_numeric_correctness": "not simulated"
+    },
+    "B3": {
+      "pass": true,
+      "pending_chunks": 0,
+      "assigned_bytes": [
+        399704064,
+        103612416
+      ],
+      "acked_payload_bytes": [
+        399704064,
+        103612416
+      ],
+      "transport_span_ns": 2169972,
+      "workload_finish_ns": 2173988,
+      "tensor_numeric_correctness": "not simulated"
+    },
+    "B4": {
+      "pass": true,
+      "pending_chunks": 0,
+      "assigned_bytes": [
+        429064192,
+        74252288
+      ],
+      "acked_payload_bytes": [
+        429064192,
+        74252288
+      ],
+      "transport_span_ns": 2340137,
+      "workload_finish_ns": 2344153,
+      "tensor_numeric_correctness": "not simulated"
+    },
+    "B6": {
+      "pass": true,
+      "pending_chunks": 0,
+      "assigned_bytes": [
+        402128896,
+        101187584
+      ],
+      "acked_payload_bytes": [
+        402128896,
+        101187584
+      ],
+      "transport_span_ns": 2346495,
+      "workload_finish_ns": 2350511,
+      "tensor_numeric_correctness": "not simulated"
+    }
+  },
+  "scope": "true16_chunk_qp_split",
+  "GP": false,
+  "calibration_scope": "workload-conditioned observed goodput; not guaranteed saturation",
+  "same_payload_across_policies": true,
+  "B5": {
+    "fidelity": "conditional_independent_pair_fluid_bound",
+    "available": true,
+    "full_allreduce_bound": false,
+    "pairs": [
+      {
+        "src": 0,
+        "dst": 5,
+        "bytes": 31457280,
+        "finish_ns": 2151782.159225127,
+        "duration_ns": 2151782.159225127,
+        "rail_bytes": [
+          24974749.67097789,
+          6482530.329022107
+        ],
+        "reachable": true
+      },
+      {
+        "src": 1,
+        "dst": 6,
+        "bytes": 31457280,
+        "finish_ns": 2143625.410085239,
+        "duration_ns": 2143625.410085239,
+        "rail_bytes": [
+          24998544.83220382,
+          6458735.167796177
+        ],
+        "reachable": true
+      },
+      {
+        "src": 2,
+        "dst": 7,
+        "bytes": 31457280,
+        "finish_ns": 2157766.850201304,
+        "duration_ns": 2157766.850201304,
+        "rail_bytes": [
+          24945324.775913883,
+          6511955.22408612
+        ],
+        "reachable": true
+      },
+      {
+        "src": 3,
+        "dst": 4,
+        "bytes": 31457280,
+        "finish_ns": 2157290.15027312,
+        "duration_ns": 2157290.15027312,
+        "rail_bytes": [
+          24935479.251280848,
+          6521800.748719148
+        ],
+        "reachable": true
+      },
+      {
+        "src": 4,
+        "dst": 9,
+        "bytes": 31457280,
+        "finish_ns": 2150693.1111488226,
+        "duration_ns": 2150693.1111488226,
+        "rail_bytes": [
+          24947952.533950932,
+          6509327.466049068
+        ],
+        "reachable": true
+      },
+      {
+        "src": 5,
+        "dst": 10,
+        "bytes": 31457280,
+        "finish_ns": 2144897.411969204,
+        "duration_ns": 2144897.411969204,
+        "rail_bytes": [
+          25006370.30054303,
+          6450909.699456976
+        ],
+        "reachable": true
+      },
+      {
+        "src": 6,
+        "dst": 11,
+        "bytes": 31457280,
+        "finish_ns": 2153212.11492887,
+        "duration_ns": 2153212.11492887,
+        "rail_bytes": [
+          24956006.902621835,
+          6501273.097378165
+        ],
+        "reachable": true
+      },
+      {
+        "src": 7,
+        "dst": 8,
+        "bytes": 31457280,
+        "finish_ns": 2159727.6469046273,
+        "duration_ns": 2159727.6469046273,
+        "rail_bytes": [
+          24932093.629143532,
+          6525186.37085647
+        ],
+        "reachable": true
+      },
+      {
+        "src": 8,
+        "dst": 13,
+        "bytes": 31457280,
+        "finish_ns": 2152905.7139661745,
+        "duration_ns": 2152905.7139661745,
+        "rail_bytes": [
+          24967100.301794715,
+          6490179.698205284
+        ],
+        "reachable": true
+      },
+      {
+        "src": 9,
+        "dst": 14,
+        "bytes": 31457280,
+        "finish_ns": 2168323.868483207,
+        "duration_ns": 2168323.868483207,
+        "rail_bytes": [
+          24934117.02533105,
+          6523162.97466895
+        ],
+        "reachable": true
+      },
+      {
+        "src": 10,
+        "dst": 15,
+        "bytes": 31457280,
+        "finish_ns": 2156664.0919218613,
+        "duration_ns": 2156664.0919218613,
+        "rail_bytes": [
+          24984214.7072068,
+          6473065.292793203
+        ],
+        "reachable": true
+      },
+      {
+        "src": 11,
+        "dst": 12,
+        "bytes": 31457280,
+        "finish_ns": 2157417.856055051,
+        "duration_ns": 2157417.856055051,
+        "rail_bytes": [
+          24930671.221395355,
+          6526608.778604643
+        ],
+        "reachable": true
+      },
+      {
+        "src": 12,
+        "dst": 1,
+        "bytes": 31457280,
+        "finish_ns": 2170792.2574687796,
+        "duration_ns": 2170792.2574687796,
+        "rail_bytes": [
+          24889668.513643764,
+          6567611.486356238
+        ],
+        "reachable": true
+      },
+      {
+        "src": 13,
+        "dst": 2,
+        "bytes": 31457280,
+        "finish_ns": 2157393.137511262,
+        "duration_ns": 2157393.137511262,
+        "rail_bytes": [
+          24954935.243161514,
+          6502344.756838482
+        ],
+        "reachable": true
+      },
+      {
+        "src": 14,
+        "dst": 3,
+        "bytes": 31457280,
+        "finish_ns": 2166464.889562598,
+        "duration_ns": 2166464.889562598,
+        "rail_bytes": [
+          24942920.474950872,
+          6514359.525049124
+        ],
+        "reachable": true
+      },
+      {
+        "src": 15,
+        "dst": 0,
+        "bytes": 31457280,
+        "finish_ns": 2149470.2479243274,
+        "duration_ns": 2149470.2479243274,
+        "rail_bytes": [
+          24984568.563562088,
+          6472711.436437916
+        ],
+        "reachable": true
+      }
+    ]
+  }
+}

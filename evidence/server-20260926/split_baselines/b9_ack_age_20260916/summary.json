@@ -1,0 +1,1121 @@
+{
+  "definition": "B9 ACK-triggered minimum censored per-chunk completion-rate bound; no timer, GP or oracle",
+  "source_summary_sha256": "07ab25b198b226e6072173220da278ea230be8441458f34b700821707c84ecaa",
+  "scenarios": {
+    "healthy": {
+      "B8": {
+        "pass": true,
+        "pending_chunks": 0,
+        "chunk_feedback": {
+          "pass": true,
+          "probes": [
+            {
+              "src": 0,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5040363028421304
+            },
+            {
+              "src": 1,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 2,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 3,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 4,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5037475533489283
+            },
+            {
+              "src": 5,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 6,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 7,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 8,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 9,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 10,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 11,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 12,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 13,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 14,
+              "bytes": 65536,
+              "A_elapsed_ns": 10576,
+              "B_elapsed_ns": 10371,
+              "A_weight": 0.49510669785649497
+            },
+            {
+              "src": 15,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            }
+          ],
+          "completion_samples": 7680
+        },
+        "assigned_bytes": [
+          251330560,
+          251985920
+        ],
+        "acked_payload_bytes": [
+          251330560,
+          251985920
+        ],
+        "transport_span_ns": 1376360,
+        "workload_finish_ns": 1380376,
+        "informative_samples": 0,
+        "tensor_numeric_correctness": "not simulated",
+        "post_fault_assigned_bytes_on_affected_access_paths": 0
+      },
+      "B9": {
+        "pass": true,
+        "pending_chunks": 0,
+        "chunk_feedback": {
+          "pass": true,
+          "probes": [
+            {
+              "src": 0,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5040363028421304
+            },
+            {
+              "src": 1,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 2,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 3,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 4,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5037475533489283
+            },
+            {
+              "src": 5,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 6,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 7,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 8,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 9,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 10,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 11,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 12,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 13,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 14,
+              "bytes": 65536,
+              "A_elapsed_ns": 10576,
+              "B_elapsed_ns": 10371,
+              "A_weight": 0.49510669785649497
+            },
+            {
+              "src": 15,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            }
+          ],
+          "completion_samples": 7680
+        },
+        "assigned_bytes": [
+          251265024,
+          252051456
+        ],
+        "acked_payload_bytes": [
+          251265024,
+          252051456
+        ],
+        "transport_span_ns": 1382491,
+        "workload_finish_ns": 1386507,
+        "informative_samples": 0,
+        "tensor_numeric_correctness": "not simulated",
+        "post_fault_assigned_bytes_on_affected_access_paths": 0,
+        "age_snapshot_rows": 15360,
+        "limited_rows": 1764,
+        "cross_rail_limited_rows": 1730,
+        "first_post_fault_cross_rail_limit_ns": 1000963
+      }
+    },
+    "42": {
+      "B8": {
+        "pass": true,
+        "pending_chunks": 0,
+        "chunk_feedback": {
+          "pass": true,
+          "probes": [
+            {
+              "src": 0,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5040363028421304
+            },
+            {
+              "src": 1,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 2,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 3,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 4,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5037475533489283
+            },
+            {
+              "src": 5,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 6,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 7,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 8,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 9,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 10,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 11,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 12,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 13,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 14,
+              "bytes": 65536,
+              "A_elapsed_ns": 10576,
+              "B_elapsed_ns": 10371,
+              "A_weight": 0.49510669785649497
+            },
+            {
+              "src": 15,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            }
+          ],
+          "completion_samples": 7680
+        },
+        "assigned_bytes": [
+          250150912,
+          253165568
+        ],
+        "acked_payload_bytes": [
+          250150912,
+          253165568
+        ],
+        "transport_span_ns": 1758915,
+        "workload_finish_ns": 1762931,
+        "informative_samples": 0,
+        "tensor_numeric_correctness": "not simulated",
+        "post_fault_assigned_bytes_on_affected_access_paths": 57212928,
+        "fault_exact": true,
+        "matches_previous_B8": true
+      },
+      "B9": {
+        "pass": true,
+        "pending_chunks": 0,
+        "chunk_feedback": {
+          "pass": true,
+          "probes": [
+            {
+              "src": 0,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5040363028421304
+            },
+            {
+              "src": 1,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 2,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 3,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 4,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5037475533489283
+            },
+            {
+              "src": 5,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 6,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 7,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 8,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 9,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 10,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 11,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 12,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 13,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 14,
+              "bytes": 65536,
+              "A_elapsed_ns": 10576,
+              "B_elapsed_ns": 10371,
+              "A_weight": 0.49510669785649497
+            },
+            {
+              "src": 15,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            }
+          ],
+          "completion_samples": 7680
+        },
+        "assigned_bytes": [
+          250478592,
+          252837888
+        ],
+        "acked_payload_bytes": [
+          250478592,
+          252837888
+        ],
+        "transport_span_ns": 1755775,
+        "workload_finish_ns": 1759791,
+        "informative_samples": 0,
+        "tensor_numeric_correctness": "not simulated",
+        "post_fault_assigned_bytes_on_affected_access_paths": 56164352,
+        "age_snapshot_rows": 15360,
+        "limited_rows": 1981,
+        "cross_rail_limited_rows": 1816,
+        "first_post_fault_cross_rail_limit_ns": 1000963,
+        "fault_exact": true
+      }
+    },
+    "43": {
+      "B8": {
+        "pass": true,
+        "pending_chunks": 0,
+        "chunk_feedback": {
+          "pass": true,
+          "probes": [
+            {
+              "src": 0,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5040363028421304
+            },
+            {
+              "src": 1,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 2,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 3,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 4,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5037475533489283
+            },
+            {
+              "src": 5,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 6,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 7,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 8,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 9,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 10,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 11,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 12,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 13,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 14,
+              "bytes": 65536,
+              "A_elapsed_ns": 10576,
+              "B_elapsed_ns": 10371,
+              "A_weight": 0.49510669785649497
+            },
+            {
+              "src": 15,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            }
+          ],
+          "completion_samples": 7680
+        },
+        "assigned_bytes": [
+          249757696,
+          253558784
+        ],
+        "acked_payload_bytes": [
+          249757696,
+          253558784
+        ],
+        "transport_span_ns": 1858145,
+        "workload_finish_ns": 1862161,
+        "informative_samples": 0,
+        "tensor_numeric_correctness": "not simulated",
+        "post_fault_assigned_bytes_on_affected_access_paths": 40763392,
+        "fault_exact": true,
+        "matches_previous_B8": true
+      },
+      "B9": {
+        "pass": true,
+        "pending_chunks": 0,
+        "chunk_feedback": {
+          "pass": true,
+          "probes": [
+            {
+              "src": 0,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5040363028421304
+            },
+            {
+              "src": 1,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 2,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 3,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 4,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5037475533489283
+            },
+            {
+              "src": 5,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 6,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 7,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 8,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 9,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 10,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 11,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 12,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 13,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 14,
+              "bytes": 65536,
+              "A_elapsed_ns": 10576,
+              "B_elapsed_ns": 10371,
+              "A_weight": 0.49510669785649497
+            },
+            {
+              "src": 15,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            }
+          ],
+          "completion_samples": 7680
+        },
+        "assigned_bytes": [
+          249692160,
+          253624320
+        ],
+        "acked_payload_bytes": [
+          249692160,
+          253624320
+        ],
+        "transport_span_ns": 1899179,
+        "workload_finish_ns": 1903195,
+        "informative_samples": 0,
+        "tensor_numeric_correctness": "not simulated",
+        "post_fault_assigned_bytes_on_affected_access_paths": 40173568,
+        "age_snapshot_rows": 15360,
+        "limited_rows": 2034,
+        "cross_rail_limited_rows": 1837,
+        "first_post_fault_cross_rail_limit_ns": 1000963,
+        "fault_exact": true
+      }
+    },
+    "44": {
+      "B8": {
+        "pass": true,
+        "pending_chunks": 0,
+        "chunk_feedback": {
+          "pass": true,
+          "probes": [
+            {
+              "src": 0,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5040363028421304
+            },
+            {
+              "src": 1,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 2,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 3,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 4,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5037475533489283
+            },
+            {
+              "src": 5,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 6,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 7,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 8,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 9,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 10,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 11,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 12,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 13,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 14,
+              "bytes": 65536,
+              "A_elapsed_ns": 10576,
+              "B_elapsed_ns": 10371,
+              "A_weight": 0.49510669785649497
+            },
+            {
+              "src": 15,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            }
+          ],
+          "completion_samples": 7680
+        },
+        "assigned_bytes": [
+          255000576,
+          248315904
+        ],
+        "acked_payload_bytes": [
+          255000576,
+          248315904
+        ],
+        "transport_span_ns": 2039655,
+        "workload_finish_ns": 2043671,
+        "informative_samples": 0,
+        "tensor_numeric_correctness": "not simulated",
+        "post_fault_assigned_bytes_on_affected_access_paths": 51904512,
+        "fault_exact": true,
+        "matches_previous_B8": true
+      },
+      "B9": {
+        "pass": true,
+        "pending_chunks": 0,
+        "chunk_feedback": {
+          "pass": true,
+          "probes": [
+            {
+              "src": 0,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5040363028421304
+            },
+            {
+              "src": 1,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 2,
+              "bytes": 65536,
+              "A_elapsed_ns": 10375,
+              "B_elapsed_ns": 10395,
+              "A_weight": 0.5004814636494944
+            },
+            {
+              "src": 3,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 4,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10552,
+              "A_weight": 0.5037475533489283
+            },
+            {
+              "src": 5,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 6,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 7,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 8,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 9,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 10,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10387,
+              "A_weight": 0.5000962927298989
+            },
+            {
+              "src": 11,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 12,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            },
+            {
+              "src": 13,
+              "bytes": 65536,
+              "A_elapsed_ns": 10395,
+              "B_elapsed_ns": 10375,
+              "A_weight": 0.4995185363505055
+            },
+            {
+              "src": 14,
+              "bytes": 65536,
+              "A_elapsed_ns": 10576,
+              "B_elapsed_ns": 10371,
+              "A_weight": 0.49510669785649497
+            },
+            {
+              "src": 15,
+              "bytes": 65536,
+              "A_elapsed_ns": 10383,
+              "B_elapsed_ns": 10383,
+              "A_weight": 0.5
+            }
+          ],
+          "completion_samples": 7680
+        },
+        "assigned_bytes": [
+          254935040,
+          248381440
+        ],
+        "acked_payload_bytes": [
+          254935040,
+          248381440
+        ],
+        "transport_span_ns": 1981994,
+        "workload_finish_ns": 1986010,
+        "informative_samples": 0,
+        "tensor_numeric_correctness": "not simulated",
+        "post_fault_assigned_bytes_on_affected_access_paths": 51052544,
+        "age_snapshot_rows": 15360,
+        "limited_rows": 1924,
+        "cross_rail_limited_rows": 1787,
+        "first_post_fault_cross_rail_limit_ns": 1000963,
+        "fault_exact": true
+      }
+    }
+  },
+  "pass": true,
+  "same_payload": true
+}

@@ -1,0 +1,28 @@
+{
+  "results": {
+    "B6": {
+      "pass": true,
+      "pending_chunks": 0,
+      "assigned_bytes": [
+        1020657664,
+        992608256
+      ],
+      "acked_payload_bytes": [
+        1020657664,
+        992608256
+      ],
+      "transport_span_ns": 5741346,
+      "workload_finish_ns": 5745362,
+      "tensor_numeric_correctness": "not simulated"
+    }
+  },
+  "scope": "true16_chunk_qp_split",
+  "GP": false,
+  "same_payload_across_policies": true,
+  "B5": {
+    "fidelity": "conditional_independent_pair_fluid_bound",
+    "available": false,
+    "full_allreduce_bound": false,
+    "pairs": []
+  }
+}
