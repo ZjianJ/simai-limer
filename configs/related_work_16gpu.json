@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "limer-related-work-16gpu-v1",
+  "platform_contract": {
+    "world_size": 16,
+    "expected_host_count": 16,
+    "expected_access_link_count": 16,
+    "expected_physical_link_count": 288,
+    "expected_fabric_tx_endpoints_per_snapshot": 544,
+    "expected_fabric_rx_endpoints_per_snapshot": 544,
+    "expected_host_endpoints_per_snapshot": 32,
+    "telemetry_interval_ns": 1000000,
+    "requires_locked_test_split": true
+  },
+  "slo": {
+    "hard_detection_strict_lt_ns": 1000000,
+    "gray_detection_strict_lt_ns": 100000000,
+    "recovery_from_detection_strict_lt_ns": 1000000000,
+    "collective_policy": "complete_correctly_or_abort_and_redo"
+  },
+  "models": {
+    "fancy": {
+      "counter_exchange_ns": 50000000,
+      "mean_residual_calibration_ns": 20000000,
+      "supported_fault_kinds": [
+        "gray_transient_error",
+        "hard_link_down",
+        "hard_link_flap"
+      ],
+      "unsupported_reason": "FANcY compares packet counters; pure bandwidth throttling without packet loss is outside this replay contract.",
+      "fidelity": "raw_counter_signal_plus_paper_mean_cadence_projection",
+      "source_parameter": "The paper evaluates dedicated counters at a 50 ms exchange frequency and reports about 70 ms average detection for sufficiently active entries. The 20 ms residual is an average calibration term, not an exact per-event session-close measurement."
+    },
+    "trumpet": {
+      "trigger_epoch_ns": 10000000,
+      "controller_delivery_projection_ns": 750000,
+      "supported_fault_kinds": [
+        "gray_fail_slow",
+        "gray_transient_error",
+        "hard_link_down",
+        "hard_link_flap"
+      ],
+      "fidelity": "telemetry_trigger_proxy",
+      "source_parameter": "The paper evaluates fine-grained trigger predicates in 10 ms intervals and reports about 0.75 ms from first satisfaction to the final poll reply for 256 simultaneous events; both values are projections here, not SimAI measurements."
+    },
+    "netbouncer": {
+      "probe_epoch_ns": 300000000000,
+      "processor_mean_ns": 37300000000,
+      "processor_max_ns": 56000000000,
+      "supported_fault_kinds": [
+        "gray_transient_error",
+        "hard_link_down",
+        "hard_link_flap"
+      ],
+      "unsupported_reason": "The published probe-loss model does not directly detect loss-free bandwidth throttling.",
+      "fidelity": "paper_parameter_projection",
+      "source_parameter": "The production design chooses a 5 minute probe epoch; reported processing time is 30.0/37.3/56.0 seconds min/mean/max."
+    },
+    "rdma_reference": {
+      "error_exposure_ns": 10000000000,
+      "requires_continuous_no_progress": true,
+      "fidelity": "configured_reference_timer",
+      "source_parameter": "Ten seconds is the deliberately explicit baseline assumption supplied by the project requirements, not a measurement from this simulator."
+    },
+    "nccl_reference": {
+      "error_exposure_ns": 30000000000,
+      "requires_continuous_no_progress": true,
+      "fidelity": "configured_reference_timer",
+      "source_parameter": "A representative default NCCL IB timeout/retry combination can expose a network error after roughly 30 seconds; it is not simulated by the current frontend."
+    },
+    "mp_rdma": {
+      "minimum_independent_paths": 2,
+      "extra_connection_state_bytes": 66,
+      "restored_path_full_utilization_upper_bound_ns": 1000000000,
+      "fidelity": "precondition_and_claim_audit",
+      "source_parameter": "The paper reports less than one second to fully utilize a restored path, not failure-to-surviving-port cutover latency."
+    },
+    "flor": {
+      "minimum_independent_paths": 2,
+      "backup_qps": 2,
+      "retry_count": 2,
+      "backup_qp_switch_ns": 60000,
+      "qp_reconnect_ns": 5000000,
+      "fidelity": "post_error_wc_timing_projection",
+      "source_parameter": "The paper reports about 60 us to switch to a pre-connected backup QP versus about 5 ms to reconnect a QP; failure-to-error-WC time is not supplied by this projection."
+    },
+    "shift": {
+      "minimum_independent_paths": 2,
+      "fallback_mean_ns": 2300000,
+      "fallback_stddev_ns": 340000,
+      "backup_qp_bytes": 138000,
+      "backup_cq_bytes": 33000,
+      "fidelity": "post_error_wc_timing_projection",
+      "source_parameter": "The paper measures 2.30 ms mean fallback from polling an error WC to full backup-RNIC traffic, not physical failure to error WC."
+    },
+    "optcc": {
+      "gpu_count": 16,
+      "gpus_per_server": 4,
+      "bandwidth_fraction": 0.86,
+      "fixed_fraction": 0.14,
+      "reported_runtime_ratio_low": 1.02,
+      "reported_runtime_ratio_high": 1.06,
+      "validated_min_remaining_capacity": 0.5,
+      "fidelity": "theorem13_analytical_projection_not_schedule_execution",
+      "source_parameter": "The paper's SimAI setup reports 2-6% overhead versus fault-free NCCL for evaluated failures. This benchmark maps one degraded GPU/NIC link to pooled server capacity and evaluates Theorem 13, but does not execute the four-stage flow schedule."
+    },
+    "recover": {
+      "fidelity": "executable_protocol_invariant_model",
+      "source_parameter": "The executable model checks epoch-tagged abort/rewind/redo semantics only; it is not the paper's MPI/ULFM implementation or a timing reproduction."
+    }
+  },
+  "sources": {
+    "FANcY": "https://discovery.ucl.ac.uk/id/eprint/10158039/1/fancy_sigcomm22.pdf",
+    "Trumpet": "https://minlanyu.seas.harvard.edu/writeup/sigcomm16.pdf",
+    "NetBouncer": "https://www.usenix.org/system/files/nsdi19spring_tan_prepub.pdf",
+    "MP-RDMA": "https://www.usenix.org/system/files/conference/nsdi18/nsdi18-lu.pdf",
+    "Flor": "https://www.usenix.org/system/files/osdi23-li-qiang.pdf",
+    "SHIFT": "https://arxiv.org/html/2512.11094v1",
+    "OptCC": "https://arxiv.org/html/2606.01680v1",
+    "ReCoVer": "https://arxiv.org/html/2605.11215v1",
+    "NCCL": "https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html"
+  }
+}

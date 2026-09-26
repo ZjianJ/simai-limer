@@ -1,11 +1,39 @@
 # simai-limer
 
+## Server worktree rescue (2026-09-26)
+
+This repository now includes the server's uncommitted research source, not only
+the original M1 release. The patches contain B8 continuous chunk-feedback
+scheduling and the later B9-B14 experimental policies. Configurations, runners,
+auditors and tests are included. Original server findings, including negative
+results, are retained; importing them is not a claim of new validation.
+
+- [B8 definition and reproduction](docs/chunk_feedback_experiment.md)
+- [Historical B8 qualification](docs/chunk_feedback_qualification.md)
+- [Random split experiments](docs/random_split_baselines.md)
+- [B9 results](docs/b9_ack_age_results.md)
+- [B10-B12 results](docs/adaptive_comparison_results.md)
+- [B13-B14 results](docs/censored_ucb_results.md)
+- [Snapshot provenance and validation status](docs/server_sync_20260926.md)
+
+Apply the current patches to SimAI `f5efb5a93ea9be7db25a8843f9f7ff54044f6062`
+and ns-3 `7e3cb5b88c99abcb582c5abc3919484a4805111b`, respectively. Do not apply
+them over the old M1 patches. Use `scripts/build_split_baselines.sh` after
+placing this repository at `<SimAI>/limer`. B8 is a feedback scheduling policy;
+it is not a learned detector or a proof of tensor arithmetic correctness.
+
 ## Interactive English demonstration
 
 [Open the B8 chunk-feedback animation](https://ZjianJ.github.io/simai-limer/)
 to see probing, feedback delay, rate updates, and weighted byte-credit splitting.
-The page is a conceptual teaching aid, not an experiment replay or a release of
-the latest simulator implementation. [Scope and validation](docs/animations/README.md).
+The page is a conceptual teaching aid, not an experiment replay.
+[Scope and validation](docs/animations/README.md).
+
+## Historical M1 Release
+
+The following describes the original M1 baseline, not the complete current
+research snapshot. In particular its old patch anchor and monitoring-only scope
+are superseded by the rescue instructions above.
 
 **LIMER Phase M1: Lightweight In-Network Monitoring for SimAI**, plus a
 dynamic randomized fault-injection extension for testing future detection

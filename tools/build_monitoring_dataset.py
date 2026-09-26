@@ -39,40 +39,65 @@ def load_link_map(run_dir):
 def window_switch(switch_df, window_ns):
     if switch_df.empty:
         return pd.DataFrame()
-    df = switch_df.copy()
-    df["window_start_ns"] = (df["timestamp_ns"] // window_ns) * window_ns
-    df["window_end_ns"] = df["window_start_ns"] + window_ns
+    # INTER_SWITCH links have two independently monitored fabric endpoints.
+    # Taking first/last after grouping only by link_id mixes those cumulative
+    # counters and produces invalid deltas.  Compute deltas per endpoint first,
+    # then aggregate the two directions into one physical-link signal.
+    tx = switch_df[switch_df["direction"] == "tx"].copy()
+    endpoint = ["run_id", "switch_id", "port_id", "link_id"]
+    counters = ["tx_bytes", "dropped_packets", "ecn_marks", "pfc_events"]
+    numeric = counters + ["queue_bytes", "max_queue_bytes",
+                          "configured_bandwidth_bps"]
+    for col in numeric:
+        tx[col] = pd.to_numeric(tx[col], errors="coerce").fillna(0)
+    tx = tx.sort_values(endpoint + ["timestamp_ns"])
+    for col in counters:
+        previous = tx.groupby(endpoint, sort=False)[col].shift(fill_value=0)
+        tx[f"{col}_delta"] = (tx[col] - previous).clip(lower=0)
 
-    tx = df[df["direction"] == "tx"].copy()
-    tx["byte_rate_bps"] = pd.to_numeric(tx["tx_bytes"], errors="coerce")
-    tx["drop_rate"] = pd.to_numeric(tx["dropped_packets"], errors="coerce")
-    tx["queue_bytes"] = pd.to_numeric(tx["queue_bytes"], errors="coerce")
-    tx["ecn_marks"] = pd.to_numeric(tx["ecn_marks"], errors="coerce")
-    tx["pfc_events"] = pd.to_numeric(tx["pfc_events"], errors="coerce")
-    tx["configured_bw"] = pd.to_numeric(tx["configured_bandwidth_bps"], errors="coerce")
+    # A sample at exactly 5 ms closes (4 ms, 5 ms], so assign it to the
+    # [0 ms, 5 ms) feature window.  This retains the first 0..1 ms delta too.
+    closed_interval_ns = (tx["timestamp_ns"] - 1).clip(lower=0)
+    tx["window_start_ns"] = (closed_interval_ns // window_ns) * window_ns
+    tx["window_end_ns"] = tx["window_start_ns"] + window_ns
 
-    grouped = tx.groupby(["run_id", "link_id", "window_start_ns", "window_end_ns"])
+    per_tick = tx.groupby(
+        ["run_id", "link_id", "window_start_ns", "window_end_ns", "timestamp_ns"]
+    ).agg(
+        tx_bytes_delta=("tx_bytes_delta", "sum"),
+        drop_packets_delta=("dropped_packets_delta", "sum"),
+        ecn_delta=("ecn_marks_delta", "sum"),
+        pfc_delta=("pfc_events_delta", "sum"),
+        queue_bytes_total=("queue_bytes", "sum"),
+        event_max_queue_bytes=("max_queue_bytes", "max"),
+        aggregate_bandwidth_bps=("configured_bandwidth_bps", "sum"),
+        endpoint_samples=("switch_id", "count"),
+    ).reset_index()
+
+    grouped = per_tick.groupby(
+        ["run_id", "link_id", "window_start_ns", "window_end_ns"]
+    )
     agg = grouped.agg(
-        switch_tx_bytes_last=("tx_bytes", "last"),
-        switch_tx_bytes_first=("tx_bytes", "first"),
-        switch_drop_pkts_last=("dropped_packets", "last"),
-        switch_drop_pkts_first=("dropped_packets", "first"),
-        switch_queue_bytes_mean=("queue_bytes", "mean"),
-        switch_queue_bytes_max=("queue_bytes", "max"),
-        switch_ecn_last=("ecn_marks", "last"),
-        switch_ecn_first=("ecn_marks", "first"),
-        switch_pfc_last=("pfc_events", "last"),
-        switch_pfc_first=("pfc_events", "first"),
-        configured_bandwidth_bps=("configured_bw", "max"),
-        n_samples=("timestamp_ns", "count"),
+        switch_tx_bytes_delta=("tx_bytes_delta", "sum"),
+        switch_drop_packets_delta=("drop_packets_delta", "sum"),
+        switch_queue_bytes_mean=("queue_bytes_total", "mean"),
+        switch_queue_bytes_max=("queue_bytes_total", "max"),
+        switch_event_max_queue_bytes=("event_max_queue_bytes", "max"),
+        switch_ecn_delta=("ecn_delta", "sum"),
+        switch_pfc_delta=("pfc_delta", "sum"),
+        configured_bandwidth_bps=("aggregate_bandwidth_bps", "mean"),
+        n_samples=("timestamp_ns", "nunique"),
+        endpoint_samples=("endpoint_samples", "sum"),
     ).reset_index()
 
     window_s = window_ns / 1e9
-    agg["switch_tx_byte_rate_bps"] = (agg["switch_tx_bytes_last"] - agg["switch_tx_bytes_first"]).clip(lower=0) * 8 / window_s
-    agg["switch_drop_rate_pkts_per_s"] = (agg["switch_drop_pkts_last"] - agg["switch_drop_pkts_first"]).clip(lower=0) / window_s
-    agg["switch_ecn_rate_per_s"] = (agg["switch_ecn_last"] - agg["switch_ecn_first"]).clip(lower=0) / window_s
-    agg["switch_pfc_rate_per_s"] = (agg["switch_pfc_last"] - agg["switch_pfc_first"]).clip(lower=0) / window_s
-    agg["switch_utilization_mean"] = agg["switch_tx_byte_rate_bps"] / agg["configured_bandwidth_bps"]
+    agg["switch_tx_byte_rate_bps"] = agg["switch_tx_bytes_delta"] * 8 / window_s
+    agg["switch_drop_rate_pkts_per_s"] = agg["switch_drop_packets_delta"] / window_s
+    agg["switch_ecn_rate_per_s"] = agg["switch_ecn_delta"] / window_s
+    agg["switch_pfc_rate_per_s"] = agg["switch_pfc_delta"] / window_s
+    agg["switch_utilization_mean"] = (
+        agg["switch_tx_byte_rate_bps"] / agg["configured_bandwidth_bps"].replace(0, pd.NA)
+    )
     return agg
 
 
@@ -80,24 +105,29 @@ def window_nic(nic_df, window_ns):
     if nic_df.empty:
         return pd.DataFrame()
     df = nic_df.copy()
-    df["window_start_ns"] = (df["timestamp_ns"] // window_ns) * window_ns
+    closed_interval_ns = (df["timestamp_ns"] - 1).clip(lower=0)
+    df["window_start_ns"] = (closed_interval_ns // window_ns) * window_ns
     df["window_end_ns"] = df["window_start_ns"] + window_ns
     for col in ["tx_bytes", "nacks", "outstanding_bytes"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
+    endpoint = ["run_id", "node_id", "nic_id", "link_id"]
+    df = df.sort_values(endpoint + ["timestamp_ns"])
+    for col in ["tx_bytes", "nacks"]:
+        previous = df.groupby(endpoint, sort=False)[col].shift(fill_value=0)
+        df[f"{col}_delta"] = (df[col] - previous).clip(lower=0)
+
     grouped = df.groupby(["run_id", "link_id", "window_start_ns", "window_end_ns"])
     agg = grouped.agg(
-        nic_tx_bytes_last=("tx_bytes", "last"),
-        nic_tx_bytes_first=("tx_bytes", "first"),
-        nic_nacks_last=("nacks", "last"),
-        nic_nacks_first=("nacks", "first"),
+        nic_tx_bytes_delta=("tx_bytes_delta", "sum"),
+        nic_nacks_delta=("nacks_delta", "sum"),
         nic_outstanding_bytes_mean=("outstanding_bytes", "mean"),
         nic_outstanding_bytes_max=("outstanding_bytes", "max"),
     ).reset_index()
 
     window_s = window_ns / 1e9
-    agg["nic_tx_byte_rate_bps"] = (agg["nic_tx_bytes_last"] - agg["nic_tx_bytes_first"]).clip(lower=0) * 8 / window_s
-    agg["nic_nack_rate_per_s"] = (agg["nic_nacks_last"] - agg["nic_nacks_first"]).clip(lower=0) / window_s
+    agg["nic_tx_byte_rate_bps"] = agg["nic_tx_bytes_delta"] * 8 / window_s
+    agg["nic_nack_rate_per_s"] = agg["nic_nacks_delta"] / window_s
     return agg
 
 
@@ -119,6 +149,7 @@ def window_collective(coll_df, window_ns):
 def attach_fault_labels(windows_df, fault_events_path):
     windows_df["fault_id"] = ""
     windows_df["label"] = "normal"
+    windows_df["fault_overlap_fraction"] = 0.0
     if not fault_events_path or not os.path.isfile(fault_events_path):
         return windows_df
     fdf = pd.read_csv(fault_events_path)
@@ -127,13 +158,17 @@ def attach_fault_labels(windows_df, fault_events_path):
     for _, frow in fdf.iterrows():
         if str(frow["fault_type"]).startswith("BLOCKED"):
             continue
-        mask = (
-            (windows_df["link_id"] == frow["target_link_id"])
-            & (windows_df["window_start_ns"] >= frow["start_time_ns"])
-            & (windows_df["window_start_ns"] < frow["end_time_ns"])
-        )
+        overlap_ns = (
+            windows_df["window_end_ns"].clip(upper=frow["end_time_ns"])
+            - windows_df["window_start_ns"].clip(lower=frow["start_time_ns"])
+        ).clip(lower=0)
+        mask = (windows_df["link_id"] == frow["target_link_id"]) & (overlap_ns > 0)
         windows_df.loc[mask, "fault_id"] = frow["fault_id"]
         windows_df.loc[mask, "label"] = frow["fault_type"]
+        windows_df.loc[mask, "fault_overlap_fraction"] = (
+            overlap_ns[mask] / (windows_df.loc[mask, "window_end_ns"]
+                                - windows_df.loc[mask, "window_start_ns"])
+        )
     return windows_df
 
 

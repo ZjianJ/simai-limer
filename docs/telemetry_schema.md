@@ -1,111 +1,172 @@
 # LIMER Telemetry Schema
 
-All three CSVs and the manifest share one simulation-time origin: ns-3's
-`Simulator::Now().GetNanoSeconds()` at the moment `main1()` starts the network
-(right after `SetupNetwork()` returns, before `Simulator::Run()`), i.e. tick 0
-of the topology/route setup phase. Every `timestamp_ns` in every file is this
-same ns-3 virtual clock, not wall-clock time. Sources reference
-`limer/docs/code_map.md`.
-
-Status legend: **live** = written from a real counter every sample/event;
-**proxy** = a simulator-internal value used as a stand-in for something that
-doesn't exist as a discrete hardware counter in this codebase (documented
-per-field); **unavailable** = column exists for schema completeness but this
-SimAI/ns-3 fork has no underlying signal for it, so it is left empty and
-must not be fabricated.
+All CSV timestamps use the same ns-3 virtual clock:
+`Simulator::Now().GetNanoSeconds()`. They are simulation time, not wall time.
+“Live” means the value comes from simulator state or an event-updated counter;
+“proxy” is explicitly derived from a related signal; “unavailable” is left
+empty rather than fabricated.
 
 ## switch_telemetry.csv
 
-| Field | Type | Status | Source |
-|---|---|---|---|
-| run_id | string | live | passed in from the run script / `run_manifest.json` |
-| timestamp_ns | uint64 | live | `Simulator::Now().GetNanoSeconds()` at sample time |
-| switch_id | uint32 | live | `SwitchNode::m_id` / ns-3 node id |
-| port_id | uint32 | live | ns-3 interface index (`ifIndex`), matches `SwitchNode::PrintSwitchQlen`'s loop variable |
-| link_id | string | live | looked up from `link_map.csv` via (switch_id, port_id) |
-| peer_node_id | uint32 | live | far-end node id from `nbr2if` (topology adjacency) |
-| direction | enum{tx,rx} | live | one row per direction per sample |
-| tx_packets | uint64 | proxy | ns-3 doesn't keep a native per-port packet counter on `SwitchNode`; LIMER adds one alongside `m_txBytes` (increment at the same site, `SwitchNotifyDequeue`) |
-| tx_bytes | uint64 | live | `SwitchNode::m_txBytes[port]`, cumulative |
-| rx_packets | uint64 | proxy | same rationale as tx_packets, incremented at `SendToDev` ingress |
-| rx_bytes | uint64 | live | derived from `m_bytes[inDev][*][*]` accumulation at `SendToDev` |
-| dropped_packets | uint64 | live | new counter incremented at both `// Drop` sites in `SwitchNode::SendToDev` |
-| drop_bytes | uint64 | live | packet size summed at the same sites |
-| queue_packets | uint32 | unavailable | `SwitchMmu` tracks queue occupancy in bytes only (`egress_bytes`), not packet count; left empty rather than estimated |
-| queue_bytes | uint64 | live | `SwitchMmu::egress_bytes[port][qIndex]` summed over `qIndex`, instantaneous read at sample time |
-| max_queue_packets | uint32 | unavailable | same reason as queue_packets |
-| max_queue_bytes | uint64 | live (derived) | computed by the Phase 7 windowing script as max of `queue_bytes` samples within each window, not by the C++ collector |
-| ecn_marks | uint64 | live | new counter incremented in `SwitchNode::SwitchNotifyDequeue`'s `egressCongested` branch |
-| pfc_events | uint64 | live | new counter incremented in `CheckAndSendPfc`/`CheckAndSendResume` right after `device->SendPfc(...)` |
-| link_errors | uint64 | unavailable | this ns-3 fork has no PHY-level bit-error/link-flap model on point-to-point/QBB links (only explicit `ERROR_RATE_PER_LINK` packet drop, already captured as dropped_packets); left empty |
-| configured_bandwidth_bps | uint64 | live | `QbbNetDevice::GetDataRate()` read fresh at every sample (not the cached topology-parse-time value) - deliberately live so it reflects a `FaultInjector`-applied bandwidth-degradation fault during its active window; `utilization` below is therefore correct even mid-fault. Falls back to the static topology value if the device somehow isn't a `QbbNetDevice`. |
-| observed_throughput_bps | double | live (derived) | computed by the windowing script from `tx_bytes` delta / window width |
-| utilization | double | live (derived) | `observed_throughput_bps / configured_bandwidth_bps`, computed by the windowing script |
+One `tx` and one `rx` row are emitted for every physical SWITCH and NVSWITCH
+endpoint at every coherent snapshot. Thus INTRA_NODE, ACCESS, and
+INTER_SWITCH links are represented.
+
+| Field | Status | Meaning/source |
+|---|---|---|
+| run_id, timestamp_ns | live | Run identity and snapshot time |
+| switch_id, port_id | live | ns-3 node and physical `QbbNetDevice` interface; loopback 0 is excluded |
+| link_id, peer_node_id | live | Physical link identity and peer from the topology adjacency map |
+| direction | live | `tx` or `rx` endpoint row |
+| tx_packets, tx_bytes | live | Cumulative successful channel transmissions on this physical device |
+| rx_packets, rx_bytes | live | Cumulative successful receives after receive-error filtering |
+| dropped_packets, drop_bytes | live | TX admission/channel drops on `tx` rows; receive/error drops on `rx` rows |
+| queue_packets, queue_bytes | live | Current total egress occupancy on `tx` rows |
+| max_queue_packets, max_queue_bytes | live | Event-updated high-water since the preceding snapshot |
+| max_queue_timestamp_ns | live | Exact simulator time of the interval byte high-water |
+| ecn_marks, pfc_events | live | Cumulative switch congestion-control events |
+| link_errors | live | Cumulative receive errors from the QBB receive-error model |
+| recovered_packets, recovered_bytes | live | Corrupted deliveries recovered by the finite benchmark link-layer recovery path |
+| configured_bandwidth_bps | live | Current `QbbNetDevice::GetDataRate()`; reflects dynamic bandwidth faults |
+| observed_throughput_bps | live | `tx_bytes` delta divided by exact elapsed simulator time |
+| utilization | live | Throughput divided by current configured rate |
+| node_type | live | `SWITCH` or `NVSWITCH` |
+| link_state | live | Physical/device state including the benchmark forced-down latch: `up` or `down` |
+| flap_count, last_link_down_ns, last_link_up_ns, cumulative_link_down_ns | live | Event-latched link transitions and down time; a sub-snapshot flap remains visible |
 
 ## nic_telemetry.csv
 
-| Field | Type | Status | Source |
-|---|---|---|---|
-| run_id | string | live | as above |
-| timestamp_ns | uint64 | live | as above |
-| node_id | uint32 | live | ns-3 host node id (`GetNodeType() == 0`) |
-| rank_id | uint32 | live | astra-sim rank == host node id in this topology (one GPU per host node) |
-| nic_id | uint32 | live | ns-3 NIC device index on the host (`gpus_per_server` is 8 but this topology has 1 NIC/GPU, so nic_id == the QbbNetDevice ifIndex) |
-| link_id | string | live | looked up from `link_map.csv` (host's ACCESS link) |
-| tx_packets | uint64 | proxy | new counter at `RdmaHw`'s packet-send path, no native counter existed. **Caveat found during verification:** this counter lives on the `RdmaHw` object (one per host), not per-NIC, so it is a host-level total repeated identically across every `nic_id` row for that host in a given sample - `tx_bytes`/`rx_bytes` (below) are correctly per-NIC, only the packet counts are not |
-| tx_bytes | uint64 | live | `RdmaQueuePair` bytes sent, same source as `RdmaHw::PrintHostBW` |
-| rx_packets | uint64 | proxy | new counter, same rationale and same host-level-not-per-NIC caveat as tx_packets |
-| rx_bytes | uint64 | live | same source as `RdmaHw::PrintHostBW`'s rx path |
-| retransmissions | uint64 | proxy | this RDMA model (go-back-N / IRN-style) doesn't label individual retransmitted packets separately from NACK-triggered resends; LIMER counts triggered NACK responses as the retransmission proxy (see nacks below) — same underlying event, reported in both columns for compatibility with the schema, not two independent measurements |
-| nacks | uint64 | live | new counter incremented at `RdmaHw::ReceiverCheckSeq`'s NACK-send branch |
-| outstanding_packets | uint32 | unavailable | `RdmaQueuePair::GetOnTheFly()` is byte-granular only; no packet-count equivalent without assuming a fixed packet size, which would be an estimate, not a measurement — left empty |
-| outstanding_bytes | uint64 | live | `RdmaQueuePair::GetOnTheFly()`, instantaneous read at sample time |
-| effective_throughput_bps | double | live (derived) | computed by the windowing script from tx_bytes delta / window width |
-| completion_delay_ns | uint64 | live | per-QP duration from `qp_finish`'s `(Simulator::Now() - q->startTime)`, recorded as a discrete event, not sampled |
-| rtt_proxy_ns | uint64 | proxy | this simulator models RTT as a static routing-table quantity (`pairRtt[src][dst]`, used for BDP/window sizing), not a per-packet measured RTT; LIMER reports this static `pairRtt` value as the proxy, clearly distinct from a measured RTT |
+One row is emitted per physical HOST device. Device 0 is loopback and is not
+mistaken for a NIC; each `nic_id` maps to a non-empty `link_id`.
+
+| Field | Status | Meaning/source |
+|---|---|---|
+| run_id, timestamp_ns | live | Run identity and snapshot time |
+| node_id, rank_id, nic_id, link_id | live | Host/rank, exact physical device index, and mapped physical link |
+| tx_packets, tx_bytes | live | Per-device cumulative successful transmissions |
+| rx_packets, rx_bytes | live | Per-device cumulative successful receives |
+| tx/rx dropped packets/bytes, link_errors | live | Per-device channel/receive failure counters |
+| recovered_packets, recovered_bytes | live | Per-device finite link-layer recoveries after transient corruption |
+| retransmissions | proxy | Same NACK-triggered resend event as `nacks`; not an independent signal |
+| nacks | live | Per-port NACK counter from `RdmaHw::ReceiverCheckSeq` |
+| outstanding_packets | unavailable | QP state is byte-granular; left empty |
+| outstanding_bytes | live | Sum of `RdmaQueuePair::GetOnTheFly()` for QPs mapped to this port |
+| effective_throughput_bps | live | Per-device `tx_bytes` delta over exact elapsed time |
+| completion_delay_ns | unavailable | No single QP completion belongs unambiguously to a periodic device row |
+| rtt_proxy_ns | unavailable | No measured per-device/per-sample RTT exists |
+| queue_packets, queue_bytes | live | Current host-device egress occupancy |
+| max_queue_packets, max_queue_bytes, max_queue_timestamp_ns | live | Event-updated interval queue high-water and timestamp |
+| configured_bandwidth_bps, link_state, utilization | live | Current device rate/state and transmit utilization |
+| flap_count, last_link_down_ns, last_link_up_ns, cumulative_link_down_ns | live | Per-device event-latched transition state |
+
+## Optional split-baseline sidecars
+
+When `LIMER_SPLIT_POLICY` is enabled, `split_events.csv` records each actual
+chunk QP assignment and ACK-qualified completion: virtual timestamp, policy,
+source/destination, source port, selected rail, payload bytes, capacity used,
+remaining reserved payload, logical flow ID, chunk offset and original flow
+bytes. A QP's source port may be reused only after its completion/cleanup;
+the logical flow and offset, not port alone, identify the payload interval.
+
+`split_samples.csv` records per-source/rail cumulative unique ACKed payload,
+interval goodput, EWMA, NIC queue, outstanding bytes and the explicit demand
+gate. ACK deltas are clipped to the QP's payload size and exclude background
+QPs and duplicate ACKs. These are separate from wire-byte TX/RX counters.
+The existing minimum 1-ms coherent sampling cadence still applies. See
+[split_baselines.md](split_baselines.md) for oracle visibility and queue scope.
 
 ## collective_telemetry.csv
 
-| Field | Type | Status | Source |
-|---|---|---|---|
-| run_id | string | live | as above |
-| collective_id | string | live | `AstraSim::ncclFlowTag.current_flow_id` (per code_map.md row C) |
-| iteration_id | uint32 | live | astra-sim workload layer iteration counter, passed through `flowTag` context at `SendFlow` |
-| layer_id | string | live | astra-sim layer name (e.g. `embedding_layer`), available at the `Sys`/workload level, passed down to the flow-start hook |
-| collective_type | string | live | from the workload file (e.g. `ALLREDUCE`) |
-| algorithm | string | live | `NcclFlowModel` (this SimAI build's fixed collective implementation, confirmed in baseline `run.log`: "all-reduce Collective implementation: NcclFlowModel") |
-| rank_id | uint32 | live | `flowTag.sender_node` / `receiver_node` |
-| world_size | uint32 | live | `gpu_num` computed in `AstraSimNetwork.cc:main()` |
-| message_size_bytes | uint64 | live | `count` argument to `sim_send`/`SendFlow` |
-| start_time_ns | uint64 | live | `Simulator::Now().GetNanoSeconds()` at `SendFlow` call |
-| finish_time_ns | uint64 | live | `Simulator::Now().GetNanoSeconds()` at `notify_sender_sending_finished`/`qp_finish` completion |
-| duration_ns | uint64 | live (derived) | finish_time_ns - start_time_ns |
-| status | enum{ok,timeout} | live | `ok` unless the simulation's own timeout/assert path fires (`SIMULATOR_STOP_TIME` in `SimAI.conf`); no separate fault-injection status leaks in here (see `fault_events.csv` isolation below) |
+These rows describe completed ns-3 flows, not fully attributed training-layer
+collectives. The frontend flow tag does not contain workload layer/iteration
+context, so `iteration_id` and `layer_id` remain empty.
 
-## run_manifest.json
+| Field | Status | Meaning/source |
+|---|---|---|
+| run_id, collective_id | live | Run and `ncclFlowTag.current_flow_id` |
+| iteration_id, layer_id | unavailable | Not carried by this frontend hook |
+| collective_type, algorithm | proxy | Workload/model constants `ALLREDUCE` and `NcclFlowModel` |
+| rank_id, world_size | live | Completing rank and simulated GPU count |
+| message_size_bytes | live | Flow byte count passed to `SendFlow` |
+| start_time_ns, finish_time_ns | live | Flow start/completion event times |
+| duration_ns | derived | `finish_time_ns - start_time_ns` |
+| status | live | `ok` for completed rows |
 
-| Field | Source |
-|---|---|
-| run_id | generated per run (e.g. `healthy-seed42-<timestamp>`) |
-| git_commit | `git rev-parse HEAD` in the SimAI repo at run time |
-| submodule_commits | `git submodule status` at run time |
-| topology_name | topology file name passed to `-n` |
-| gpu_count | `gpu_num` from topology header |
-| gpus_per_server | topology header field |
-| workload_file | `-w` argument |
-| configuration_file | `-c` argument (a `limer/configs/*.conf`, never the stock upstream conf) |
-| telemetry_interval_us | `LIMER_TELEMETRY_INTERVAL_US` (default 1000) |
-| fault_enabled | true/false + fault_id if applicable |
-| random_seed | seed used for this run (see `monitoring_design.md` for what "seed" controls in a deterministic discrete-event simulator) |
-| start_wall_time / end_wall_time | wall-clock ISO8601, for the overhead study, not simulation time |
-| exit_code | `SimAI_simulator` process exit code |
+## rdma_wc_telemetry.csv and background_flow_application.csv
+
+`rdma_wc_telemetry.csv` records QP creation, retry, WC, backup-ready, and
+failover events. Its `traffic_class` field is `TRAINING`, `BACKGROUND`, or
+`CONTROL`; RDMA/NCCL baselines must filter to `TRAINING` so injected congestion
+traffic cannot become a false training alarm.
+
+The terminal transport fields are per-QP live values, not planner metadata:
+
+| Field | Status | Meaning/source |
+|---|---|---|
+| primary_nic, backup_nic, active_nic | live | Physical host ns-3 device indices bound to the QP; they are not zero-based rail labels |
+| retry_count | live | Number of RTO retries already issued for this QP |
+| retry_limit | live | Effective retry limit copied into this QP at creation |
+| rto_us | live | Effective RTO copied into this QP at creation; this makes the runtime transport setting auditable from raw evidence |
+
+For an executable `incast` or `queue_buildup` control, the independent
+`background_flow_application.csv` sidecar records exactly one
+`SCHEDULED -> START -> COMPLETE` lifecycle per declared QP. `COMPLETE` is
+ACK-qualified and carries first-TX and first-ACK timestamps. A flow still
+active at the observation horizon is emitted as `CENSORED` and the P2 runner
+refuses to publish that run as complete evidence.
+
+### P2 v5 single-rail background evidence contract
+
+The prepared-v4 corpus is retained as immutable historical output, but it is
+not admissible P2 execution evidence. Its congestion flows could hash across
+both rails and its nominal 200 ms label interval did not describe the much
+shorter interval in which the finite flows actually produced pressure.
+
+Prepared v5 replaces that interpretation with a hash-locked, single-port
+contract:
+
+- Host device `ifIndex=2` is Plane A / route bucket 0; `ifIndex=3` is Plane B /
+  route bucket 1. `primary_nic` and `active_nic` must contain 2 or 3, while
+  `route_bucket` remains 0 or 1.
+- Every reserved background source port is selected so both the forward DATA
+  4-tuple and reverse ACK 4-tuple produce the declared ns-3 Murmur3 route
+  bucket. The two directions therefore use the same physical rail.
+- The declared launch window is the schedule interval from the earliest QP
+  start through one nanosecond after the latest QP start. The realized pressure
+  window is measured independently, from the first DATA transmission through
+  the last ACK-qualified completion; queue-buildup also preserves per-wave
+  timing. Neither window is inferred from a nominal fault-label duration.
+- Every background QP must reach ACK-qualified `SUCCESS` no later than the
+  declared 200,000,000 ns completion deadline. Its auditable transport values
+  are `rto_us=250000`, `retry_limit=0`, and `retry_count=0`, with no retry,
+  failover, standby, or error events.
+- Congestion evidence is evaluated only on the declared target ACCESS link and
+  physical target port. The paired ACCESS link is retained for topology and
+  isolation checks, but its queue peak or throughput cannot satisfy the target
+  link's evidence requirement.
+
+These are evidence-admission rules, not a completed result. P2 is not passed
+until the v5 runs themselves are executed, hash-bound, and accepted by the
+stage evaluator; a prepared corpus or a static source test cannot unlock P3.
+
+## link_map.csv and run_manifest.json
+
+`link_map.csv` is generated from the loaded topology and is the authoritative
+one-row-per-physical-link mapping: node types, endpoint ports, class, nominal
+bandwidth, and delay. The run manifest records source revisions, topology,
+GPU count, workload/configuration, fault identity, requested telemetry
+interval, wall times, and exit status. Requested intervals below 1000 us are
+raised to the safe 1000 us MTP snapshot cadence and a warning is written to
+the run log.
 
 ## Label isolation
 
-`fault_events.csv` (ground truth: fault_id, fault_type, target_link_id,
-start_time_ns, end_time_ns, severity, parameter_before, parameter_after) is
-written by the run script from the fault *configuration*, never by the C++
-collector, and never joined into the three telemetry CSVs above. Label
-alignment happens only in the Phase 7 post-processing step
-(`tools/build_monitoring_dataset.py`), by timestamp + link_id, keeping the
-telemetry files themselves label-free.
+`fault_events.csv` contains ground truth only. It is never joined into raw
+telemetry. `tools/build_monitoring_dataset.py` attaches labels afterward by
+physical `link_id` and actual time-window overlap, including
+`fault_overlap_fraction` for boundary windows.
+
+The simulator fault-schedule input accepts an optional ninth
+`recovery_delay_ns` field for recoverable packet corruption. Omitting it keeps
+the 50 us default, so existing schedules are unchanged. This injected value
+is schedule-side ground truth and is never exposed as an inference feature.

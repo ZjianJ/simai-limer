@@ -8,6 +8,7 @@ ROOT_DIR=$(realpath "${SCRIPT_DIR}/../..")
 
 module load gcc-native/12.3
 export CC=gcc CXX=g++
+export SIMAI_BUILD_JOBS="${SIMAI_BUILD_JOBS:-8}"
 export ASTRA_SIM_LOG_DIR="${ASTRA_SIM_LOG_DIR:-$HOME/.astra-sim}"
 mkdir -p "${ASTRA_SIM_LOG_DIR}"
 

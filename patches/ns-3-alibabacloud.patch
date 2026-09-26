@@ -1,8 +1,2180 @@
+diff --git a/simulation/build-support/macros-and-definitions.cmake b/simulation/build-support/macros-and-definitions.cmake
+index e3653a8..c83c136 100644
+--- a/simulation/build-support/macros-and-definitions.cmake
++++ b/simulation/build-support/macros-and-definitions.cmake
+@@ -43,7 +43,12 @@ include(${PROJECT_SOURCE_DIR}/build-support/3rd-party/colored-messages.cmake)
+ # WSLv1 doesn't support tap features
+ if(EXISTS "/proc/version")
+   file(READ "/proc/version" CMAKE_LINUX_DISTRO)
+-  string(FIND ${CMAKE_LINUX_DISTRO} "Microsoft" res)
++  # LIMER env-compat patch: some HPC kernels (e.g. Cray/SUSE) embed a literal
++  # ";" in /proc/version (e.g. "GNU Binutils; SUSE Linux..."). CMake treats
++  # unquoted ";" as a list separator, so the unquoted variable here expands to
++  # extra positional args and string(FIND) fails with "unknown last
++  # parameter". Quoting preserves upstream's WSL-detection semantics exactly.
++  string(FIND "${CMAKE_LINUX_DISTRO}" "Microsoft" res)
+   if(res EQUAL -1)
+     set(WSLv1 False)
+   else()
+diff --git a/simulation/src/applications/helper/rdma-client-helper.cc b/simulation/src/applications/helper/rdma-client-helper.cc
+index 7aa6b6f..439c28a 100644
+--- a/simulation/src/applications/helper/rdma-client-helper.cc
++++ b/simulation/src/applications/helper/rdma-client-helper.cc
+@@ -25,11 +25,14 @@
+ namespace ns3 {
+ 
+ RdmaClientHelper::RdmaClientHelper ()
++  : msg_handler(nullptr), fun_arg(nullptr)
+ {
++	m_factory.SetTypeId (RdmaClient::GetTypeId ());
+ }
+ 
+ RdmaClientHelper::RdmaClientHelper (uint16_t pg, Ipv4Address sip, Ipv4Address dip, uint16_t sport, uint16_t dport, uint64_t size, uint32_t win, uint64_t baseRtt,
+         void (*msg_handler)(void* fun_arg), void* fun_arg, int tag, int src, int dest)
++  : msg_handler(msg_handler), fun_arg(fun_arg)
+ {
+ 	m_factory.SetTypeId (RdmaClient::GetTypeId ());
+ 	SetAttribute ("PriorityGroup", UintegerValue (pg));
+@@ -44,8 +47,6 @@ RdmaClientHelper::RdmaClientHelper (uint16_t pg, Ipv4Address sip, Ipv4Address di
+   SetAttribute ("Src", UintegerValue (src));
+   SetAttribute ("Dest", UintegerValue (dest));
+   SetAttribute ("NVLS_enable", UintegerValue (0));
+-  msg_handler = msg_handler;
+-  fun_arg = fun_arg;
+ }
+ 
+ void
+diff --git a/simulation/src/applications/model/rdma-client.cc b/simulation/src/applications/model/rdma-client.cc
+index 0f40114..df58d25 100644
+--- a/simulation/src/applications/model/rdma-client.cc
++++ b/simulation/src/applications/model/rdma-client.cc
+@@ -24,6 +24,7 @@
+ #include "ns3/ipv4-address.h"
+ #include "ns3/ipv4-end-point.h"
+ #include "ns3/log.h"
++#include "ns3/node.h"
+ #include "ns3/nstime.h"
+ #include "ns3/packet.h"
+ #include "ns3/qbb-net-device.h"
+@@ -37,6 +38,13 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ 
++// The Astra/ns-3 frontend supplies this hook.  Keeping it weak preserves the
++// other ns-3 applications, while a BACKGROUND client fails closed if no
++// executor is linked to provide application-start provenance.
++extern "C" void limer_background_flow_started(
++    uint32_t src, uint32_t dest, uint16_t sport, uint16_t dport, uint16_t pg,
++    uint64_t actual_ns) __attribute__((weak));
++
+ namespace ns3 {
+ 
+ NS_LOG_COMPONENT_DEFINE("RdmaClient");
+@@ -85,11 +93,23 @@ TypeId RdmaClient::GetTypeId(void) {
+                         MakeUintegerChecker<uint64_t>())
+           .AddAttribute("NVLS_enable", "NVLS enable info", UintegerValue(0),
+                         MakeUintegerAccessor(&RdmaClient::nvls_enable),
+-                        MakeUintegerChecker<uint32_t>());
++                        MakeUintegerChecker<uint32_t>())
++          .AddAttribute("LimerTrafficClass",
++                        "0=training collective, 1=independent background RDMA",
++                        UintegerValue(LIMER_RDMA_TRAFFIC_TRAINING),
++                        MakeUintegerAccessor(&RdmaClient::m_limerTrafficClass),
++                        MakeUintegerChecker<uint32_t>(
++                            LIMER_RDMA_TRAFFIC_TRAINING,
++                            LIMER_RDMA_TRAFFIC_BACKGROUND));
+   return tid;
+ }
+ 
+-RdmaClient::RdmaClient() { NS_LOG_FUNCTION_NOARGS(); }
++RdmaClient::RdmaClient()
++    : msg_handler(nullptr), fun_arg(nullptr),
++      m_limerTrafficClass(LIMER_RDMA_TRAFFIC_TRAINING),
++      m_cleanupScheduled(false) {
++  NS_LOG_FUNCTION_NOARGS();
++}
+ 
+ RdmaClient::~RdmaClient() { NS_LOG_FUNCTION_NOARGS(); }
+ 
+@@ -111,15 +131,40 @@ void RdmaClient::Sent() {
+ }
+ 
+ void RdmaClient::Finish() {
++  if (m_cleanupScheduled)
++    return;
++  Ptr<Node> node = GetNode();
++  if (node == 0)
++    return;
++  m_cleanupScheduled = true;
++  // QpComplete invokes this callback from the sender node's private LP.  A
++  // zero-delay node-context event keeps a strong Ptr to the client while the
++  // current callback unwinds, then breaks Node's otherwise permanent
++  // application ownership.  Do not take the global MTP critical section:
++  // application and QP scheduling for this sender are serialized by the LP.
++  Simulator::ScheduleWithContext(
++      node->GetId(), TimeStep(0),
++      &RdmaClient::ReleaseCompletedApplication, node,
++      Ptr<RdmaClient>(this));
++}
++
++void RdmaClient::ReleaseCompletedApplication(Ptr<Node> node,
++                                             Ptr<RdmaClient> client) {
++  if (node == 0 || client == 0)
++    return;
++  node->DeleteApplication(client);
++  client->Dispose();
+ }
+ 
+ void RdmaClient::SetFn(void (*msg_handler)(void *fun_arg), void *fun_arg) {
+-  msg_handler = msg_handler;
+-  fun_arg = fun_arg;
++  this->msg_handler = msg_handler;
++  this->fun_arg = fun_arg;
+ }
+ 
+ void RdmaClient::DoDispose(void) {
+   NS_LOG_FUNCTION_NOARGS();
++  msg_handler = nullptr;
++  fun_arg = nullptr;
+   Application::DoDispose();
+ }
+ 
+@@ -134,7 +179,15 @@ void RdmaClient::StartApplication(void) {
+   rdma->AddQueuePair(src, dest, tag, m_size, m_pg, m_sip, m_dip, m_sport,
+                      m_dport, m_win, m_baseRtt,
+                      MakeCallback(&RdmaClient::Finish, this),
+-                     MakeCallback(&RdmaClient::Sent, this));
++                     MakeCallback(&RdmaClient::Sent, this),
++                     m_limerTrafficClass);
++  if (m_limerTrafficClass == LIMER_RDMA_TRAFFIC_BACKGROUND) {
++    NS_ABORT_MSG_IF(limer_background_flow_started == nullptr,
++                    "BACKGROUND RdmaClient has no BackgroundFlowExecutor hook");
++    limer_background_flow_started(
++        static_cast<uint32_t>(src), static_cast<uint32_t>(dest), m_sport,
++        m_dport, m_pg, Simulator::Now().GetNanoSeconds());
++  }
+ }
+ 
+ void RdmaClient::StopApplication() {
+diff --git a/simulation/src/applications/model/rdma-client.h b/simulation/src/applications/model/rdma-client.h
+index ed161f1..4ea967e 100644
+--- a/simulation/src/applications/model/rdma-client.h
++++ b/simulation/src/applications/model/rdma-client.h
+@@ -28,6 +28,7 @@
+ #include "ns3/ptr.h"
+ #include "ns3/ipv4-address.h"
+ #include <ns3/rdma.h>
++#include <ns3/rdma-queue-pair.h>
+ 
+ namespace ns3 {
+ 
+@@ -68,6 +69,9 @@ protected:
+ 
+ private:
+ 
++  static void ReleaseCompletedApplication(Ptr<Node> node,
++                                          Ptr<RdmaClient> client);
++
+   virtual void StartApplication (void);
+   virtual void StopApplication (void);
+ 
+@@ -84,6 +88,8 @@ private:
+   uint64_t src; 
+   uint64_t dest; 
+   uint32_t nvls_enable;
++  uint32_t m_limerTrafficClass;
++  bool m_cleanupScheduled;
+ };
+ 
+ } // namespace ns3
+diff --git a/simulation/src/mpi/model/hybrid-simulator-impl.cc b/simulation/src/mpi/model/hybrid-simulator-impl.cc
+index 2488d2f..9204ca1 100644
+--- a/simulation/src/mpi/model/hybrid-simulator-impl.cc
++++ b/simulation/src/mpi/model/hybrid-simulator-impl.cc
+@@ -75,6 +75,7 @@ HybridSimulatorImpl::Destroy ()
+         }
+     }
+ 
++  MtpInterface::ClearFaultBarrierEvents ();
+   MtpInterface::Disable ();
+   MpiInterface::Destroy ();
+ }
+@@ -99,6 +100,7 @@ HybridSimulatorImpl::Stop (void)
+     {
+       MtpInterface::GetSystem (i)->Stop ();
+     }
++  MtpInterface::ClearFaultBarrierEvents ();
+ }
+ 
+ void
+diff --git a/simulation/src/mtp/model/logical-process.cc b/simulation/src/mtp/model/logical-process.cc
+index 5969ec4..36c7fa0 100644
+--- a/simulation/src/mtp/model/logical-process.cc
++++ b/simulation/src/mtp/model/logical-process.cc
+@@ -178,6 +178,44 @@ LogicalProcess::ProcessOneRound ()
+   m_executionTime = std::chrono::duration_cast<std::chrono::nanoseconds> (end - start).count ();
+ }
+ 
++void
++LogicalProcess::ProcessOneRoundWithFaultBarrier ()
++{
++  NS_LOG_FUNCTION (this);
++
++  // Fault barriers are public-LP events that intentionally precede private
++  // events at the same timestamp.  Keep the established inclusive rule for
++  // both lookahead and ordinary-public bounds; use a strict bound only when
++  // the dedicated fault timestamp is the bound that stops this LP.
++  MtpInterface::SetSystem (m_systemId);
++  Time ordinaryGrantedTime =
++      Min (MtpInterface::GetSmallestTime () + m_lookAhead,
++           MtpInterface::GetNextPublicTime ());
++  Time faultBarrierTime = MtpInterface::GetNextFaultBarrierTime ();
++  bool stoppedByFaultBarrier = faultBarrierTime <= ordinaryGrantedTime;
++  Time grantedTime = stoppedByFaultBarrier ? faultBarrierTime : ordinaryGrantedTime;
++
++  auto start = std::chrono::system_clock::now ();
++
++  while ((stoppedByFaultBarrier && Next () < grantedTime) ||
++         (!stoppedByFaultBarrier && Next () <= grantedTime))
++    {
++      Scheduler::Event next = m_events->RemoveNext ();
++      m_eventCount++;
++      NS_LOG_LOGIC ("handle " << next.key.m_ts);
++
++      m_currentTs = next.key.m_ts;
++      m_currentContext = next.key.m_context;
++      m_currentUid = next.key.m_uid;
++
++      next.impl->Invoke ();
++      next.impl->Unref ();
++    }
++
++  auto end = std::chrono::system_clock::now ();
++  m_executionTime = std::chrono::duration_cast<std::chrono::nanoseconds> (end - start).count ();
++}
++
+ EventId
+ LogicalProcess::Schedule (Time const &delay, EventImpl *event)
+ {
+diff --git a/simulation/src/mtp/model/logical-process.h b/simulation/src/mtp/model/logical-process.h
+index fa0ba3e..e4b5d7c 100644
+--- a/simulation/src/mtp/model/logical-process.h
++++ b/simulation/src/mtp/model/logical-process.h
+@@ -27,6 +27,10 @@ public:
+   void CalculateLookAhead ();
+   void ReceiveMessages ();
+   void ProcessOneRound ();
++  // Process the ordinary conservative window, but do not consume an event
++  // whose timestamp is exactly the next fault-only public barrier.  Ordinary
++  // public boundaries retain ProcessOneRound()'s inclusive tie rule.
++  void ProcessOneRoundWithFaultBarrier ();
+ 
+   inline uint64_t
+   GetExecutionTime () const
+diff --git a/simulation/src/mtp/model/mtp-interface.cc b/simulation/src/mtp/model/mtp-interface.cc
+index 236c299..763b5f8 100644
+--- a/simulation/src/mtp/model/mtp-interface.cc
++++ b/simulation/src/mtp/model/mtp-interface.cc
+@@ -128,6 +128,48 @@ MtpInterface::Disable ()
+   delete[] g_sortedSystemIndices;
+ }
+ 
++void
++MtpInterface::ScheduleFaultBarrierEvent (Time const &delay, EventImpl *event)
++{
++  // Unlike Simulator::Schedule(), this narrow API enters MTP directly.  Make
++  // sure the selected SimulatorImpl (and therefore the initial public LP)
++  // exists even when a fault is the first event registered by an application.
++  const Time now = Simulator::Now ();
++  NS_ASSERT_MSG (event != nullptr, "Cannot schedule a null fault-barrier event");
++  NS_ASSERT_MSG (delay >= TimeStep (0), "Fault-barrier delay must be non-negative");
++  NS_ASSERT_MSG (g_systems != nullptr && GetSystem () == &g_systems[0],
++                 "Fault barriers must be registered from the public LP");
++
++  CriticalSection cs;
++  Time eventTime = now + delay;
++  FaultBarrierKey key (eventTime.GetTimeStep (), g_faultBarrierSequence++);
++  g_faultBarrierEvents.emplace (key, event);
++  RefreshNextFaultBarrierTime ();
++}
++
++void
++MtpInterface::RefreshNextFaultBarrierTime ()
++{
++  const uint64_t next = g_faultBarrierEvents.empty ()
++                            ? Time::Max ().GetTimeStep ()
++                            : g_faultBarrierEvents.begin ()->first.first;
++  g_nextFaultBarrierTimeStep.store (next, std::memory_order_release);
++}
++
++void
++MtpInterface::ClearFaultBarrierEvents ()
++{
++  CriticalSection cs;
++  for (auto &entry : g_faultBarrierEvents)
++    {
++      entry.second->Cancel ();
++      entry.second->Unref ();
++    }
++  g_faultBarrierEvents.clear ();
++  g_faultBarrierSequence = 0;
++  RefreshNextFaultBarrierTime ();
++}
++
+ void
+ MtpInterface::Run ()
+ {
+@@ -172,11 +214,37 @@ MtpInterface::ProcessOneRound ()
+       std::sort (g_sortedSystemIndices, g_sortedSystemIndices + g_systemCount, g_sortFunc);
+     }
+ 
+-  // stage 1: process events
+-  g_recvMsgStage = false;
++  const bool faultBarrierDue =
++      HasPendingFaultBarrierEvents () && GetNextFaultBarrierTime () == g_smallestTime;
++
++  // Stage 1: private LPs retain their normal inclusive windows except when
++  // the next fault timestamp is the limiting bound.  At that one boundary
++  // they stop strictly before T.
++  ProcessPrivateStage (HasPendingFaultBarrierEvents ());
++
++  if (faultBarrierDue && HasPendingFaultBarrierEvents () &&
++      GetNextFaultBarrierTime () == g_smallestTime)
++    {
++      // All workers are stopped at a barrier here.  Apply every fault at T on
++      // the public LP, then let private LPs consume their T events.  This
++      // second inclusive pass is what preserves progress for zero-lookahead
++      // LPs; the global <= rule is never changed.
++      ProcessFaultBarrierEvents ();
++      // A fault callback may register an ordinary public event (the hard-fault
++      // alarm path does this today).  The second private pass must honor that
++      // new boundary rather than the value cached before the callback.
++      g_nextPublicTime = g_systems[0].Next ();
++      ProcessPrivateStage (HasPendingFaultBarrierEvents ());
++    }
++
++  // Stage 2: ordinary public events keep their established position after
++  // private events, including when they share T with a fault barrier.
++  g_systems[0].ProcessOneRound ();
++
++  // stage 3: receive messages
++  g_recvMsgStage = true;
+   g_finishedSystemCount.store (0, std::memory_order_relaxed);
+   g_systemIndex.store (0, std::memory_order_release);
+-  // main thread also needs to process an LP to reduce an extra thread overhead
+   while (true)
+     {
+       uint32_t index = g_systemIndex.fetch_add (1, std::memory_order_acquire);
+@@ -185,21 +253,24 @@ MtpInterface::ProcessOneRound ()
+           break;
+         }
+       LogicalProcess *system = &g_systems[g_sortedSystemIndices[index]];
+-      system->ProcessOneRound ();
++      system->ReceiveMessages ();
+       g_finishedSystemCount.fetch_add (1, std::memory_order_release);
+     }
+ 
+   // logical process barriar synchronization
+   while (g_finishedSystemCount.load (std::memory_order_acquire) != g_systemCount)
+     ;
++}
+ 
+-  // stage 2: process the public LP
+-  g_systems[0].ProcessOneRound ();
+-
+-  // stage 3: receive messages
+-  g_recvMsgStage = true;
++void
++MtpInterface::ProcessPrivateStage (bool respectFaultBarrier)
++{
++  g_recvMsgStage = false;
++  g_respectFaultBarrier = respectFaultBarrier;
+   g_finishedSystemCount.store (0, std::memory_order_relaxed);
+   g_systemIndex.store (0, std::memory_order_release);
++
++  // The main thread also processes an LP to avoid one extra worker handoff.
+   while (true)
+     {
+       uint32_t index = g_systemIndex.fetch_add (1, std::memory_order_acquire);
+@@ -208,15 +279,48 @@ MtpInterface::ProcessOneRound ()
+           break;
+         }
+       LogicalProcess *system = &g_systems[g_sortedSystemIndices[index]];
+-      system->ReceiveMessages ();
++      if (respectFaultBarrier)
++        {
++          system->ProcessOneRoundWithFaultBarrier ();
++        }
++      else
++        {
++          system->ProcessOneRound ();
++        }
+       g_finishedSystemCount.fetch_add (1, std::memory_order_release);
+     }
+ 
+-  // logical process barriar synchronization
+   while (g_finishedSystemCount.load (std::memory_order_acquire) != g_systemCount)
+     ;
+ }
+ 
++void
++MtpInterface::ProcessFaultBarrierEvents ()
++{
++  NS_ASSERT_MSG (HasPendingFaultBarrierEvents () &&
++                     GetNextFaultBarrierTime () == g_smallestTime,
++                 "Fault barrier may execute only at the global smallest time");
++
++  const uint64_t boundary = GetNextFaultBarrierTime ().GetTimeStep ();
++  while (!g_faultBarrierEvents.empty () &&
++         g_faultBarrierEvents.begin ()->first.first == boundary)
++    {
++      auto next = g_faultBarrierEvents.begin ();
++      EventImpl *impl = next->second;
++      g_faultBarrierEvents.erase (next);
++      RefreshNextFaultBarrierTime ();
++
++      Scheduler::Event event;
++      event.impl = impl;
++      event.key.m_ts = boundary;
++      event.key.m_context = Simulator::NO_CONTEXT;
++      // Priority events are not cancellable EventIds.  INVALID keeps an
++      // ordinary public EventId at the same timestamp from appearing expired.
++      event.key.m_uid = EventId::UID::INVALID;
++      g_systems[0].InvokeNow (event);
++    }
++}
++
+ void
+ MtpInterface::CalculateSmallestTime ()
+ {
+@@ -232,6 +336,11 @@ MtpInterface::CalculateSmallestTime ()
+         }
+     }
+ 
++  if (HasPendingFaultBarrierEvents () && GetNextFaultBarrierTime () < g_smallestTime)
++    {
++      g_smallestTime = GetNextFaultBarrierTime ();
++    }
++
+   g_nextPublicTime = g_systems[0].Next ();
+ 
+   // test if global finished
+@@ -240,6 +349,7 @@ MtpInterface::CalculateSmallestTime ()
+     {
+       globalFinished &= g_systems[i].isLocalFinished ();
+     }
++  globalFinished &= !HasPendingFaultBarrierEvents ();
+   g_globalFinished = globalFinished;
+ }
+ 
+@@ -292,6 +402,10 @@ MtpInterface::ThreadFunc (void *arg)
+         {
+           system->ReceiveMessages ();
+         }
++      else if (g_respectFaultBarrier)
++        {
++          system->ProcessOneRoundWithFaultBarrier ();
++        }
+       else
+         {
+           system->ProcessOneRound ();
+@@ -357,12 +471,21 @@ Time MtpInterface::g_smallestTime = TimeStep (0);
+ 
+ Time MtpInterface::g_nextPublicTime = TimeStep (0);
+ 
++std::atomic<uint64_t> MtpInterface::g_nextFaultBarrierTimeStep (
++    Time::Max ().GetTimeStep ());
++
+ bool MtpInterface::g_recvMsgStage = false;
+ 
++bool MtpInterface::g_respectFaultBarrier = false;
++
+ bool MtpInterface::g_globalFinished = false;
+ 
+ bool MtpInterface::g_enabled = false;
+ 
++std::map<MtpInterface::FaultBarrierKey, EventImpl *> MtpInterface::g_faultBarrierEvents;
++
++uint64_t MtpInterface::g_faultBarrierSequence = 0;
++
+ pthread_key_t MtpInterface::g_key;
+ 
+ std::atomic<bool> MtpInterface::g_inCriticalSection (false);
+diff --git a/simulation/src/mtp/model/mtp-interface.h b/simulation/src/mtp/model/mtp-interface.h
+index 5136e05..74efbcd 100644
+--- a/simulation/src/mtp/model/mtp-interface.h
++++ b/simulation/src/mtp/model/mtp-interface.h
+@@ -8,7 +8,10 @@
+ #include "ns3/nstime.h"
+ #include "ns3/simulator.h"
+ 
++#include <map>
+ #include <pthread.h>
++#include <type_traits>
++#include <utility>
+ 
+ namespace ns3 {
+ 
+@@ -114,6 +117,18 @@ public:
+     return g_nextPublicTime;
+   }
+ 
++  inline static Time
++  GetNextFaultBarrierTime ()
++  {
++    return TimeStep (g_nextFaultBarrierTimeStep.load (std::memory_order_acquire));
++  }
++
++  inline static bool
++  HasPendingFaultBarrierEvents ()
++  {
++    return !g_faultBarrierEvents.empty ();
++  }
++
+   inline static bool
+   isFinished ()
+   {
+@@ -142,8 +157,43 @@ public:
+                              MakeEvent (f, std::forward<Ts> (args)...));
+   }
+ 
++  // LIMER fault injection is the sole intended caller of this API.  The
++  // callback executes on the public LP at its requested time, but in a
++  // dedicated pre-private phase so a carrier transition at T precedes node
++  // events at T.  Events scheduled normally from the callback remain ordinary
++  // public events and retain the established private-before-public ordering.
++  // Hybrid runs require the same pre-registered fault timeline on every rank;
++  // this process-local queue is not a general cross-rank scheduling API.
++  template <typename FUNC,
++            typename std::enable_if<!std::is_convertible<FUNC, Ptr<EventImpl>>::value, int>::type =
++                0,
++            typename std::enable_if<
++                !std::is_function<typename std::remove_pointer<FUNC>::type>::value, int>::type = 0,
++            typename... Ts>
++  inline static void
++  ScheduleFaultBarrier (Time const &delay, FUNC f, Ts &&...args)
++  {
++    ScheduleFaultBarrierEvent (delay, MakeEvent (f, std::forward<Ts> (args)...));
++  }
++
++  template <typename... Us, typename... Ts>
++  inline static void
++  ScheduleFaultBarrier (Time const &delay, void (*f) (Us...), Ts &&...args)
++  {
++    ScheduleFaultBarrierEvent (delay, MakeEvent (f, std::forward<Ts> (args)...));
++  }
++
++  // Simulator implementations call this on Stop()/Destroy().  Auto-
++  // partitioning deliberately does not clear the queue, so events registered
++  // before Partition() survive the replacement of the public LogicalProcess.
++  static void ClearFaultBarrierEvents ();
++
+ private:
+   static void *ThreadFunc (void *arg);
++  static void ProcessPrivateStage (bool respectFaultBarrier);
++  static void ProcessFaultBarrierEvents ();
++  static void ScheduleFaultBarrierEvent (Time const &delay, EventImpl *event);
++  static void RefreshNextFaultBarrierTime ();
+ 
+   // determine logical process priority
+   static bool SortByExecutionTime (const uint32_t &i, const uint32_t &j);
+@@ -167,10 +217,20 @@ private:
+   static uint32_t g_round;
+   static Time g_smallestTime;
+   static Time g_nextPublicTime;
++  // Stop() may be invoked by a private worker while the other workers are
++  // reading this boundary.  Keep the published timestamp atomic; the event
++  // map itself remains owned by the public/main thread except for Stop's
++  // terminal clear.
++  static std::atomic<uint64_t> g_nextFaultBarrierTimeStep;
+   static bool g_recvMsgStage;
++  static bool g_respectFaultBarrier;
+   static bool g_globalFinished;
+   static bool g_enabled;
+ 
++  typedef std::pair<uint64_t, uint64_t> FaultBarrierKey;
++  static std::map<FaultBarrierKey, EventImpl *> g_faultBarrierEvents;
++  static uint64_t g_faultBarrierSequence;
++
+   static pthread_key_t g_key;
+   static std::atomic<bool> g_inCriticalSection;
+ 
+diff --git a/simulation/src/mtp/model/multithreaded-simulator-impl.cc b/simulation/src/mtp/model/multithreaded-simulator-impl.cc
+index 64658d4..34461f7 100644
+--- a/simulation/src/mtp/model/multithreaded-simulator-impl.cc
++++ b/simulation/src/mtp/model/multithreaded-simulator-impl.cc
+@@ -72,6 +72,7 @@ MultithreadedSimulatorImpl::Destroy ()
+           ev->Invoke ();
+         }
+     }
++  MtpInterface::ClearFaultBarrierEvents ();
+   MtpInterface::Disable ();
+ }
+ 
+@@ -89,6 +90,10 @@ MultithreadedSimulatorImpl::Stop ()
+     {
+       MtpInterface::GetSystem (i)->Stop ();
+     }
++  // A terminal Stop must not advance virtual time solely to execute future
++  // fault transitions.  Clear them after marking every LP stopped; the
++  // published boundary is atomic for workers still leaving this round.
++  MtpInterface::ClearFaultBarrierEvents ();
+ }
+ 
+ void
+diff --git a/simulation/src/network/model/node.cc b/simulation/src/network/model/node.cc
+index 1199bc1..4a978ed 100644
+--- a/simulation/src/network/model/node.cc
++++ b/simulation/src/network/model/node.cc
+@@ -400,4 +400,8 @@ void Node::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Packet> p)
+ 	NS_ASSERT_MSG(false, "Calling NotifyDequeue() on a non-switch node or this function is not implemented");
+ }
+ 
++void Node::SwitchNotifyDrop(uint32_t ifIndex, uint32_t qIndex, Ptr<Packet> p){
++	NS_ASSERT_MSG(false, "Calling SwitchNotifyDrop() on a non-switch node or this function is not implemented");
++}
++
+ } // namespace ns3
+diff --git a/simulation/src/network/model/node.h b/simulation/src/network/model/node.h
+index 5a190bf..38269c2 100644
+--- a/simulation/src/network/model/node.h
++++ b/simulation/src/network/model/node.h
+@@ -309,6 +309,10 @@ protected:
+   public:
+   virtual bool SwitchReceiveFromDevice(Ptr<NetDevice> device, Ptr<Packet> packet, CustomHeader &ch);
+   virtual void SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Packet> p);
++  // Release switch admission state for a packet discarded before wire
++  // transmission.  This is intentionally separate from SwitchNotifyDequeue:
++  // a purge must not update TX, ECN, HPCC/PINT, or last-packet state.
++  virtual void SwitchNotifyDrop(uint32_t ifIndex, uint32_t qIndex, Ptr<Packet> p);
+ 
+ };
+ 
+diff --git a/simulation/src/network/utils/broadcom-egress-queue.cc b/simulation/src/network/utils/broadcom-egress-queue.cc
+index 7f4e5ef..a96a0e3 100644
+--- a/simulation/src/network/utils/broadcom-egress-queue.cc
++++ b/simulation/src/network/utils/broadcom-egress-queue.cc
+@@ -54,6 +54,12 @@ namespace ns3 {
+ 
+ 	BEgressQueue::BEgressQueue() 
+ 		: PacketQueue(),
++		m_nBytes(0),
++		m_nTotalReceivedBytes(0),
++		m_nPackets(0),
++		m_nTotalReceivedPackets(0),
++		m_nTotalDroppedBytes(0),
++		m_nTotalDroppedPackets(0),
+ 		NS_LOG_TEMPLATE_DEFINE ("BEgressQueue")
+ 	{
+ 		NS_LOG_FUNCTION_NOARGS();
+@@ -239,6 +245,12 @@ namespace ns3 {
+ 		return m_bytesInQueueTotal;
+ 	}
+ 
++	uint32_t
++		BEgressQueue::GetNPacketsTotal() const
++	{
++		return m_nPackets;
++	}
++
+ 	uint32_t
+ 		BEgressQueue::GetLastQueue()
+ 	{
+diff --git a/simulation/src/network/utils/broadcom-egress-queue.h b/simulation/src/network/utils/broadcom-egress-queue.h
+index 82743d5..1e76752 100644
+--- a/simulation/src/network/utils/broadcom-egress-queue.h
++++ b/simulation/src/network/utils/broadcom-egress-queue.h
+@@ -45,6 +45,7 @@ namespace ns3 {
+ 		Ptr<Packet> DequeueRR(bool paused[]);
+ 		uint32_t GetNBytes(uint32_t qIndex) const;
+ 		uint32_t GetNBytesTotal() const;
++		uint32_t GetNPacketsTotal() const;
+ 		uint32_t GetLastQueue();
+ 
+ 		TracedCallback<Ptr<const Packet>, uint32_t> m_traceBeqEnqueue;
+diff --git a/simulation/src/point-to-point/CMakeLists.txt b/simulation/src/point-to-point/CMakeLists.txt
+index 3dc59d2..babf384 100644
+--- a/simulation/src/point-to-point/CMakeLists.txt
++++ b/simulation/src/point-to-point/CMakeLists.txt
+@@ -34,6 +34,8 @@ build_lib(
+     model/rdma-driver.cc
+     model/rdma-queue-pair.cc
+     model/rdma-hw.cc
++    model/limer-congestion-signal.cc
++    model/limer-route-choice.cc
+     model/switch-node.cc
+     model/switch-mmu.cc
+     model/nvswitch-node.cc
+@@ -56,6 +58,8 @@ build_lib(
+     model/rdma-driver.h
+     model/rdma-queue-pair.h
+     model/rdma-hw.h
++    model/limer-congestion-signal.h
++    model/limer-route-choice.h
+     model/switch-node.h
+     model/switch-mmu.h
+     model/trace-format.h
+diff --git a/simulation/src/point-to-point/model/nvswitch-node.cc b/simulation/src/point-to-point/model/nvswitch-node.cc
+index 47b1397..d3dd62b 100755
+--- a/simulation/src/point-to-point/model/nvswitch-node.cc
++++ b/simulation/src/point-to-point/model/nvswitch-node.cc
+@@ -8,13 +8,20 @@
+ #include "ns3/double.h"
+ #include "nvswitch-node.h"
+ #include "qbb-net-device.h"
++#include "rdma-queue-pair.h"
+ #include "ppp-header.h"
+ #include "ns3/int-header.h"
+ #include "ns3/simulator.h"
+ #include <cmath>
++#include <limits>
+ 
+ namespace ns3 {
+ 
++static_assert(LIMER_ROUTE_BACKGROUND_SPORT_MIN == LIMER_BACKGROUND_SPORT_MIN,
++	"route recorder and RDMA background source-port bounds differ");
++static_assert(LIMER_ROUTE_BACKGROUND_SPORT_MAX == LIMER_BACKGROUND_SPORT_MAX,
++	"route recorder and RDMA background source-port bounds differ");
++
+ TypeId NVSwitchNode::GetTypeId (void)
+ {
+   static TypeId tid = TypeId ("ns3::NVSwitchNode")
+@@ -33,10 +40,6 @@ NVSwitchNode::NVSwitchNode(){
+ 	m_ecmpSeed = m_id;
+ 	m_node_type = 2;
+ 	m_mmu = CreateObject<SwitchMmu>();
+-	for (uint32_t i = 0; i < pCnt; i++)
+-		for (uint32_t j = 0; j < pCnt; j++)
+-			for (uint32_t k = 0; k < qCnt; k++)
+-				m_bytes[i][j][k] = 0;
+ 	for (uint32_t i = 0; i < pCnt; i++){
+ 		m_txBytes[i] = 0;
+ 		last_txBytes[i] = 0;
+@@ -48,6 +51,39 @@ NVSwitchNode::NVSwitchNode(){
+ 		m_u[i] = 0;
+ }
+ 
++uint64_t NVSwitchNode::QueueByteKey(uint32_t inDev, uint32_t outDev,
++		uint32_t qIndex){
++	NS_ASSERT_MSG(inDev < pCnt, "NVSwitch ingress port exceeds accounting bound");
++	NS_ASSERT_MSG(outDev < pCnt, "NVSwitch egress port exceeds accounting bound");
++	NS_ASSERT_MSG(qIndex < qCnt, "NVSwitch queue exceeds accounting bound");
++	return (static_cast<uint64_t>(inDev) * pCnt + outDev) * qCnt + qIndex;
++}
++
++void NVSwitchNode::AddQueuedBytes(uint32_t inDev, uint32_t outDev,
++		uint32_t qIndex, uint32_t bytes){
++	uint32_t &queued = m_bytes[QueueByteKey(inDev, outDev, qIndex)];
++	NS_ASSERT_MSG(queued <= std::numeric_limits<uint32_t>::max() - bytes,
++		"NVSwitch queued-byte accounting overflow");
++	queued += bytes;
++}
++
++void NVSwitchNode::RemoveQueuedBytes(uint32_t inDev, uint32_t outDev,
++		uint32_t qIndex, uint32_t bytes, const char* underflowMessage){
++	uint64_t key = QueueByteKey(inDev, outDev, qIndex);
++	auto it = m_bytes.find(key);
++	NS_ASSERT_MSG(it != m_bytes.end() && it->second >= bytes,
++		underflowMessage);
++	it->second -= bytes;
++	if (it->second == 0)
++		m_bytes.erase(it);
++}
++
++bool NVSwitchNode::RememberLimerRouteChoice(
++		const LimerRouteChoiceEvent& event){
++	std::lock_guard<std::mutex> guard(m_limerRouteChoiceMutex);
++	return EmitLimerRouteChoiceOnce(&m_limerRouteChoices, event);
++}
++
+ int NVSwitchNode::GetOutDev(Ptr<const Packet> p, CustomHeader &ch){
+ 	// look up entries
+ 	auto entry = m_rtTable.find(ch.dip);
+@@ -63,18 +99,47 @@ int NVSwitchNode::GetOutDev(Ptr<const Packet> p, CustomHeader &ch){
+ 	union {
+ 		uint8_t u8[4+4+2+2];
+ 		uint32_t u32[3];
+-	} buf;
++	} buf = {};
+ 	buf.u32[0] = ch.sip;
+ 	buf.u32[1] = ch.dip;
++	uint16_t packet_sport = 0;
++	uint16_t packet_dport = 0;
++	uint16_t pg = 0;
+ 	if (ch.l3Prot == 0x6)
+ 		buf.u32[2] = ch.tcp.sport | ((uint32_t)ch.tcp.dport << 16);
+-	else if (ch.l3Prot == 0x11)
++	else if (ch.l3Prot == 0x11){
+ 		buf.u32[2] = ch.udp.sport | ((uint32_t)ch.udp.dport << 16);
+-	else if (ch.l3Prot == 0xFC || ch.l3Prot == 0xFD)
++		packet_sport = ch.udp.sport;
++		packet_dport = ch.udp.dport;
++		pg = ch.udp.pg;
++	}else if (ch.l3Prot == 0xFC || ch.l3Prot == 0xFD){
+ 		buf.u32[2] = ch.ack.sport | ((uint32_t)ch.ack.dport << 16);
++		packet_sport = ch.ack.sport;
++		packet_dport = ch.ack.dport;
++		pg = ch.ack.pg;
++	}
+ 
+-	uint32_t idx = EcmpHash(buf.u8, 12, m_ecmpSeed) % nexthops.size();
+-	return nexthops[idx];
++	const uint32_t hash = EcmpHash(buf.u8, 12, m_ecmpSeed);
++	const LimerEcmpSelection selection = LimerSelectEcmp(hash, nexthops);
++	NS_ABORT_MSG_IF(!selection.ok,
++		"NVSwitch route has no valid ECMP candidate");
++	if (HasLimerRouteChoiceSink()) {
++		LimerRouteChoiceEvent event;
++		if (LimerClassifyBackgroundRoute(
++				ch.l3Prot, ch.sip, ch.dip, packet_sport, packet_dport,
++				pg, &event)) {
++			event.timestamp_ns = Simulator::Now().GetNanoSeconds();
++			event.node_id = GetId();
++			event.node_type = GetNodeType();
++			event.ecmp_seed = m_ecmpSeed;
++			event.ecmp_hash = hash;
++			event.candidate_count = selection.candidate_count;
++			event.bucket = selection.bucket;
++			event.egress_port = selection.egress_port;
++			RememberLimerRouteChoice(event);
++		}
++	}
++	return static_cast<int>(selection.egress_port);
+ }
+ 
+ void NVSwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch){
+@@ -100,13 +165,22 @@ void NVSwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch){
+ 				m_mmu->UpdateIngressAdmission(inDev, qIndex, p->GetSize());
+ 				m_mmu->UpdateEgressAdmission(idx, qIndex, p->GetSize());
+ 			}else{
++				m_limerDropPkts[idx]++;
++				m_limerDropBytes[idx] += p->GetSize();
+ 				return; // Drop
+ 			}
++			AddQueuedBytes(inDev, idx, qIndex, p->GetSize());
+ 		}
+-		m_bytes[inDev][idx][qIndex] += p->GetSize();
+ 		m_devices[idx]->SwitchSend(qIndex, p, ch);
+ 	}else
+ 	{
++		FlowIdTag limerNoRouteTag;
++		p->PeekPacketTag(limerNoRouteTag);
++		uint32_t limerInDev = limerNoRouteTag.GetFlowId();
++		if (limerInDev < pCnt) {
++			m_limerDropPkts[limerInDev]++;
++			m_limerDropBytes[limerInDev] += p->GetSize();
++		}
+ 		return; // Drop
+ 	}
+ }
+@@ -175,12 +249,26 @@ void NVSwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pa
+ 		uint32_t inDev = t.GetFlowId();
+ 		m_mmu->RemoveFromIngressAdmission(inDev, qIndex, p->GetSize());
+ 		m_mmu->RemoveFromEgressAdmission(ifIndex, qIndex, p->GetSize());
+-		m_bytes[inDev][ifIndex][qIndex] -= p->GetSize();
++		RemoveQueuedBytes(inDev, ifIndex, qIndex, p->GetSize(),
++			"NVSwitch dequeue admission accounting underflow");
+ 	}
+ 	m_txBytes[ifIndex] += p->GetSize();
+ 	m_lastPktSize[ifIndex] = p->GetSize();
+ 	m_lastPktTs[ifIndex] = Simulator::Now().GetTimeStep();
+ }
++
++void NVSwitchNode::SwitchNotifyDrop(uint32_t ifIndex, uint32_t qIndex, Ptr<Packet> p){
++	if (qIndex == 0)
++		return;
++	FlowIdTag t;
++	NS_ASSERT_MSG(p->PeekPacketTag(t),
++		"A queued NVSwitch packet must retain its ingress FlowIdTag until purge");
++	uint32_t inDev = t.GetFlowId();
++	m_mmu->RemoveFromIngressAdmission(inDev, qIndex, p->GetSize());
++	m_mmu->RemoveFromEgressAdmission(ifIndex, qIndex, p->GetSize());
++	RemoveQueuedBytes(inDev, ifIndex, qIndex, p->GetSize(),
++		"NVSwitch purge admission accounting underflow");
++}
+ // for monitor
+ /**
+  * outoput format:
+diff --git a/simulation/src/point-to-point/model/nvswitch-node.h b/simulation/src/point-to-point/model/nvswitch-node.h
+index b0213de..ea2ef16 100644
+--- a/simulation/src/point-to-point/model/nvswitch-node.h
++++ b/simulation/src/point-to-point/model/nvswitch-node.h
+@@ -1,8 +1,11 @@
+ #ifndef NVSWITCH_NODE_H
+ #define NVSWITCH_NODE_H
+ 
++#include <map>
++#include <mutex>
+ #include <unordered_map>
+ #include <ns3/node.h>
++#include "limer-route-choice.h"
+ #include "qbb-net-device.h"
+ #include "switch-mmu.h"
+ #include "pint.h"
+@@ -16,8 +19,13 @@ class NVSwitchNode : public Node{
+ 	static const uint32_t qCnt = 8;	// Number of queues/priorities used
+ 	uint32_t m_ecmpSeed;
+ 	std::unordered_map<uint32_t, std::vector<int> > m_rtTable; // map from ip address (u32) to possible ECMP port (index of dev)
++	std::set<LimerRouteChoiceKey> m_limerRouteChoices;
++	std::mutex m_limerRouteChoiceMutex;
+ 
+-	uint32_t m_bytes[pCnt][pCnt][qCnt]; // m_bytes[inDev][outDev][qidx] is the bytes from inDev enqueued for outDev at qidx
++	// Sparse equivalent of m_bytes[inDev][outDev][qidx].  Only non-empty
++	// ingress/egress/queue tuples consume memory; std::map provides stable key
++	// ordering independent of allocation addresses.
++	std::map<uint64_t, uint32_t> m_bytes;
+ 	
+ 	uint64_t m_txBytes[pCnt]; // counter of tx bytes
+ 
+@@ -29,7 +37,14 @@ protected:
+ 	uint32_t m_ackHighPrio; // set high priority for ACK/NACK
+ 
+ private:
++	static uint64_t QueueByteKey(uint32_t inDev, uint32_t outDev,
++		uint32_t qIndex);
++	void AddQueuedBytes(uint32_t inDev, uint32_t outDev, uint32_t qIndex,
++		uint32_t bytes);
++	void RemoveQueuedBytes(uint32_t inDev, uint32_t outDev, uint32_t qIndex,
++		uint32_t bytes, const char* underflowMessage);
+ 	int GetOutDev(Ptr<const Packet>, CustomHeader &ch);
++	bool RememberLimerRouteChoice(const LimerRouteChoiceEvent& event);
+ 	void SendToDev(Ptr<Packet>p, CustomHeader &ch);
+ 	static uint32_t EcmpHash(const uint8_t* key, size_t len, uint32_t seed);
+ 
+@@ -43,6 +58,7 @@ public:
+ 	void ClearTable();
+ 	bool SwitchReceiveFromDevice(Ptr<NetDevice> device, Ptr<Packet> packet, CustomHeader &ch);
+ 	void SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Packet> p);
++	void SwitchNotifyDrop(uint32_t ifIndex, uint32_t qIndex, Ptr<Packet> p);
+ 
+ 	// for approximate calc in PINT
+ 	int logres_shift(int b, int l);
+@@ -61,6 +77,11 @@ public:
+ 	 * time, sw_id, port_id, txBytes
+ 	 */
+ 	void PrintSwitchBw(FILE* bw_output, uint32_t bw_mon_interval);
++
++	// LIMER admission/no-route drops. Per-device wire counters and queue
++	// high-water marks live on QbbNetDevice and are shared by all node types.
++	uint64_t m_limerDropPkts[pCnt] = {0};
++	uint64_t m_limerDropBytes[pCnt] = {0};
+ };
+ 
+ } /* namespace ns3 */
+diff --git a/simulation/src/point-to-point/model/qbb-channel.cc b/simulation/src/point-to-point/model/qbb-channel.cc
+index 38d2fbb..5294c3a 100644
+--- a/simulation/src/point-to-point/model/qbb-channel.cc
++++ b/simulation/src/point-to-point/model/qbb-channel.cc
+@@ -55,7 +55,9 @@ QbbChannel::GetTypeId (void)
+ // has an "infitely" fast transmission speed and zero delay.
+ QbbChannel::QbbChannel()
+   :
+-    PointToPointChannel ()
++    PointToPointChannel (),
++    m_carrierUp (true),
++    m_carrierEpoch (0)
+ {
+   NS_LOG_FUNCTION_NOARGS ();
+   m_nDevices = 0;
+@@ -101,16 +103,80 @@ QbbChannel::TransmitStart (
+   NS_ASSERT (m_link[1].m_state != INITIALIZING);
+ 
+   uint32_t wire = src == m_link[0].m_src ? 0 : 1;
++  NS_ASSERT_MSG (src == m_link[wire].m_src,
++                 "QbbChannel::TransmitStart source is not attached");
++  Ptr<QbbNetDevice> dst = m_link[wire].m_dst;
++
++  // Read the epoch on both sides of the state check.  NotifyCarrierDown()
++  // stores DOWN before advancing the epoch, so a transmission concurrent with
++  // the transition either observes DOWN or detects an epoch change.
++  uint64_t carrierEpoch = m_carrierEpoch.load (std::memory_order_acquire);
++  if (!m_carrierUp.load (std::memory_order_acquire) ||
++      !src->IsLinkUp () || !dst->IsLinkUp ())
++    {
++      return false;
++    }
++  if (!m_carrierUp.load (std::memory_order_acquire) ||
++      carrierEpoch != m_carrierEpoch.load (std::memory_order_acquire))
++    {
++      return false;
++    }
+ 
+-  Simulator::ScheduleWithContext (m_link[wire].m_dst->GetNode ()->GetId (),
+-                                  txTime + m_delay, &QbbNetDevice::Receive,
+-                                  m_link[wire].m_dst, p);
++  Simulator::ScheduleWithContext (dst->GetNode ()->GetId (),
++                                  txTime + m_delay,
++                                  &QbbChannel::DeliverWithCarrierEpoch,
++                                  this, p, dst, carrierEpoch);
+ 
+   // Call the tx anim callback on the net device
+   m_txrxQbb (p, src, m_link[wire].m_dst, txTime, txTime + m_delay);
+   return true;
+ }
+ 
++void
++QbbChannel::NotifyCarrierDown (void)
++{
++  // DOWN must become visible before the epoch changes; TransmitStart's
++  // double-check then closes the race between its first epoch read and send.
++  bool wasUp = m_carrierUp.exchange (false, std::memory_order_acq_rel);
++  if (wasUp)
++    {
++      m_carrierEpoch.fetch_add (1, std::memory_order_acq_rel);
++    }
++}
++
++void
++QbbChannel::NotifyCarrierUp (void)
++{
++  m_carrierUp.store (true, std::memory_order_release);
++}
++
++bool
++QbbChannel::IsCarrierUp (void) const
++{
++  return m_carrierUp.load (std::memory_order_acquire);
++}
++
++uint64_t
++QbbChannel::GetCarrierEpoch (void) const
++{
++  return m_carrierEpoch.load (std::memory_order_acquire);
++}
++
++void
++QbbChannel::DeliverWithCarrierEpoch (Ptr<Packet> p,
++                                     Ptr<QbbNetDevice> dst,
++                                     uint64_t carrierEpoch)
++{
++  if (!m_carrierUp.load (std::memory_order_acquire) ||
++      carrierEpoch != m_carrierEpoch.load (std::memory_order_acquire) ||
++      !dst->IsLinkUp ())
++    {
++      dst->ReceiveLimerCarrierDrop (p);
++      return;
++    }
++  dst->Receive (p);
++}
++
+ size_t
+ QbbChannel::GetNDevices (void) const
+ {
+diff --git a/simulation/src/point-to-point/model/qbb-channel.h b/simulation/src/point-to-point/model/qbb-channel.h
+index c8cfc6f..8754656 100644
+--- a/simulation/src/point-to-point/model/qbb-channel.h
++++ b/simulation/src/point-to-point/model/qbb-channel.h
+@@ -26,6 +26,7 @@
+ #include "ns3/nstime.h"
+ #include "ns3/data-rate.h"
+ #include "ns3/traced-callback.h"
++#include <atomic>
+ 
+ namespace ns3 {
+ 
+@@ -73,6 +74,15 @@ public:
+    */
+   virtual bool TransmitStart (Ptr<Packet> p, Ptr<QbbNetDevice> src, Time txTime);
+ 
++  // Real carrier state is shared by both directions.  Closing the carrier
++  // advances an epoch so frames scheduled before DOWN cannot be delivered
++  // after a subsequent UP.  These operations never detach devices or alter
++  // forwarding/RDMA state.
++  void NotifyCarrierDown (void);
++  void NotifyCarrierUp (void);
++  bool IsCarrierUp (void) const;
++  uint64_t GetCarrierEpoch (void) const;
++
+   /**
+    * \brief Get number of devices on this channel
+    * \returns number of devices on this channel
+@@ -128,6 +138,12 @@ private:
+ 
+   Time          m_delay;
+   int32_t       m_nDevices;
++  std::atomic<bool> m_carrierUp;
++  std::atomic<uint64_t> m_carrierEpoch;
++
++  void DeliverWithCarrierEpoch (Ptr<Packet> p,
++                                Ptr<QbbNetDevice> dst,
++                                uint64_t carrierEpoch);
+ 
+   /**
+    * The trace source for the packet transmission animation events that the 
+diff --git a/simulation/src/point-to-point/model/qbb-net-device.cc b/simulation/src/point-to-point/model/qbb-net-device.cc
+index 6d191ed..91832e5 100644
+--- a/simulation/src/point-to-point/model/qbb-net-device.cc
++++ b/simulation/src/point-to-point/model/qbb-net-device.cc
+@@ -43,10 +43,13 @@
+ #include "ns3/error-model.h"
+ #include "ns3/cn-header.h"
+ #include "ns3/ppp-header.h"
++#include "limer-congestion-signal.h"
+ #include "ns3/udp-header.h"
+ #include "ns3/seq-ts-header.h"
+ #include "ns3/pointer.h"
+ #include "ns3/custom-header.h"
++#include <algorithm>
++#include <cmath>
+ #include <iostream>
+ NS_LOG_COMPONENT_DEFINE("QbbNetDevice");
+ 
+@@ -93,7 +96,6 @@ namespace ns3 {
+ 		return 0;
+ 	}
+ 	int RdmaEgressQueue::GetNextQindex(bool paused[]){
+-		bool found = false;
+ 		uint32_t qIndex;
+ 		if (!paused[ack_q_idx] && m_ackQ->GetNPackets() > 0)
+ 			return -1;
+@@ -101,7 +103,6 @@ namespace ns3 {
+ 		// no pkt in highest priority queue, do rr for each qp
+ 		int res = -1024;
+ 		uint32_t fcount = m_qpGrp->GetN();
+-		uint32_t min_finish_id = 0xffffffff;
+ 		for (qIndex = 1; qIndex <= fcount; qIndex++){
+ 			// iterate start behind the m_rrlast qp
+ 			uint32_t idx = (qIndex + m_rrlast) % fcount;
+@@ -118,23 +119,8 @@ namespace ns3 {
+ 					continue;
+ 				res = idx;
+ 				break;
+-			}else if (qp->IsFinished()){
+-				min_finish_id = idx < min_finish_id ? idx : min_finish_id;
+ 			}
+ 		}
+-
+-		// clear the finished qp
+-		if (min_finish_id < 0xffffffff){
+-			int nxt = min_finish_id;
+-			auto &qps = m_qpGrp->m_qps;
+-			for (int i = min_finish_id + 1; i < fcount; i++) if (!qps[i]->IsFinished()){
+-				if (i == res) // update res to the idx after removing finished qp
+-					res = nxt;
+-				qps[nxt] = qps[i];
+-				nxt++;
+-			}
+-			qps.resize(nxt);
+-		}
+ 		return res;
+ 	}
+ 
+@@ -154,6 +140,37 @@ namespace ns3 {
+ 	Ptr<RdmaQueuePair> RdmaEgressQueue::GetQp(uint32_t i){
+ 		return m_qpGrp->Get(i);
+ 	}
++
++	bool RdmaEgressQueue::RemoveQp(Ptr<RdmaQueuePair> qp){
++		uint32_t oldCount = m_qpGrp->GetN();
++		if (oldCount == 0)
++			return false;
++		uint32_t removedIndex = 0;
++		uint32_t oldLast = m_rrlast % oldCount;
++		if (!m_qpGrp->RemoveQp(qp, &removedIndex))
++			return false;
++
++		uint32_t newCount = oldCount - 1;
++		if (newCount == 0){
++			m_rrlast = 0;
++		}else if (removedIndex < oldLast){
++			m_rrlast = oldLast - 1;
++		}else if (removedIndex == oldLast){
++			// Preserve the old round-robin successor as the next candidate.
++			m_rrlast = (removedIndex + newCount - 1) % newCount;
++		}else{
++			m_rrlast = oldLast;
++		}
++
++		if (m_qlast >= 0){
++			uint32_t oldQueue = static_cast<uint32_t>(m_qlast);
++			if (oldQueue == removedIndex)
++				m_qlast = -1;
++			else if (oldQueue > removedIndex)
++				--m_qlast;
++		}
++		return true;
++	}
+  
+ 	void RdmaEgressQueue::RecoverQueue(uint32_t i){
+ 		NS_ASSERT_MSG(i < m_qpGrp->GetN(), "RdmaEgressQueue::RecoverQueue: qIndex >= m_qpGrp->GetN()");
+@@ -249,6 +266,104 @@ namespace ns3 {
+ 		m_rdmaEQ = CreateObject<RdmaEgressQueue>();
+ 	}
+ 
++	uint64_t QbbNetDevice::GetLimerQueueBytes() const
++	{
++		uint64_t bytes = 0;
++		if (m_queue != 0)
++			bytes += m_queue->GetNBytesTotal();
++		if (m_rdmaEQ != 0 && m_rdmaEQ->m_ackQ != 0)
++			bytes += m_rdmaEQ->m_ackQ->GetNBytes();
++		return bytes;
++	}
++
++	uint64_t QbbNetDevice::GetLimerQueuePackets() const
++	{
++		uint64_t packets = 0;
++		if (m_queue != 0)
++			packets += m_queue->GetNPacketsTotal();
++		if (m_rdmaEQ != 0 && m_rdmaEQ->m_ackQ != 0)
++			packets += m_rdmaEQ->m_ackQ->GetNPackets();
++		return packets;
++	}
++
++	void QbbNetDevice::ObserveLimerQueue()
++	{
++		uint64_t bytes = GetLimerQueueBytes();
++		uint64_t packets = GetLimerQueuePackets();
++		if (bytes > m_limerMaxQueueBytes) {
++			m_limerMaxQueueBytes = bytes;
++			m_limerMaxQueueTimestampNs = Simulator::Now().GetNanoSeconds();
++		}
++		m_limerMaxQueuePackets = std::max(m_limerMaxQueuePackets, packets);
++	}
++
++	void QbbNetDevice::ResetLimerQueuePeaks()
++	{
++		m_limerMaxQueueBytes = GetLimerQueueBytes();
++		m_limerMaxQueuePackets = GetLimerQueuePackets();
++		m_limerMaxQueueTimestampNs = Simulator::Now().GetNanoSeconds();
++	}
++
++	void QbbNetDevice::SetLimerForcedLinkDown(bool down)
++	{
++		if (down == m_limerForcedLinkDown)
++			return;
++		uint64_t now = Simulator::Now().GetNanoSeconds();
++		m_limerForcedLinkDown = down;
++		m_limerLinkFlaps++;
++		if (down) {
++			m_limerLastLinkDownNs = now;
++		} else {
++			m_limerLastLinkUpNs = now;
++			if (now >= m_limerLastLinkDownNs)
++				m_limerCumulativeDownNs += now - m_limerLastLinkDownNs;
++		}
++	}
++
++	bool QbbNetDevice::GetLimerLinkUp() const
++	{
++		return IsLinkUp() && !m_limerForcedLinkDown;
++	}
++
++	uint64_t QbbNetDevice::GetLimerCumulativeDownNs() const
++	{
++		uint64_t total = m_limerCumulativeDownNs;
++		if (m_limerForcedLinkDown) {
++			uint64_t now = Simulator::Now().GetNanoSeconds();
++			if (now >= m_limerLastLinkDownNs)
++				total += now - m_limerLastLinkDownNs;
++		}
++		return total;
++	}
++
++	void QbbNetDevice::SetLimerRecoverRxErrors(bool enabled, uint64_t delayNs)
++	{
++		m_limerRecoverRxErrors = enabled;
++		m_limerRecoveryDelayNs = delayNs;
++	}
++
++	void QbbNetDevice::SetLimerServiceFraction(double fraction)
++	{
++		NS_ABORT_MSG_IF(!std::isfinite(fraction) || fraction <= 0.0 || fraction > 1.0,
++			"LIMER service fraction must be finite and in (0, 1]");
++		m_limerServiceFraction = fraction;
++	}
++
++	double QbbNetDevice::GetLimerServiceFraction() const
++	{
++		return m_limerServiceFraction;
++	}
++
++	void QbbNetDevice::ReceiveLimerCarrierDrop(Ptr<Packet> packet)
++	{
++		if (packet == 0)
++			return;
++		m_limerRxDrops++;
++		m_limerRxDropBytes += packet->GetSize();
++		m_phyRxDropTrace(packet);
++		m_traceDrop(packet, 0);
++	}
++
+ 	QbbNetDevice::~QbbNetDevice()
+ 	{
+ 		NS_LOG_FUNCTION(this);
+@@ -470,19 +585,32 @@ namespace ns3 {
+ 	{
+ 		NS_LOG_FUNCTION(this << packet);
+ 		if (!m_linkUp){
+-			m_traceDrop(packet, 0);
++			ReceiveLimerCarrierDrop(packet);
+ 			return;
+ 		}
+ 
+ 		if (m_receiveErrorModel && m_receiveErrorModel->IsCorrupt(packet))
+ 		{
+-			// 
+-			// If we have an error model and it indicates that it is time to lose a
+-			// corrupted packet, don't forward this packet up, let it go.
+-			//
+ 			m_phyRxDropTrace(packet);
++			m_limerLinkErrors++;
++			if (m_limerRecoverRxErrors) {
++				m_limerRecoveredPackets++;
++				m_limerRecoveredBytes += packet->GetSize();
++				Simulator::Schedule(NanoSeconds(m_limerRecoveryDelayNs),
++					&QbbNetDevice::DeliverLimerReceivedPacket, this, packet);
++			} else {
++				m_limerRxDrops++;
++				m_limerRxDropBytes += packet->GetSize();
++			}
+ 			return;
+ 		}
++		DeliverLimerReceivedPacket(packet);
++	}
++
++	void QbbNetDevice::DeliverLimerReceivedPacket(Ptr<Packet> packet)
++	{
++		m_limerRxPackets++;
++		m_limerRxBytes += packet->GetSize();
+ 
+ 		m_macRxTrace(packet);
+ 		CustomHeader ch(CustomHeader::L2_Header | CustomHeader::L3_Header | CustomHeader::L4_Header);
+@@ -491,12 +619,44 @@ namespace ns3 {
+ 		if (ch.l3Prot == 0xFE){ // PFC
+ 			if (!m_qbbEnabled) return;
+ 			unsigned qIndex = ch.pfc.qIndex;
++			NS_ABORT_MSG_IF(qIndex >= qCnt, "received PFC PG exceeds device queues");
++			const bool pause_before = m_paused[qIndex];
++			bool transitioned = false;
+ 			if (ch.pfc.time > 0){
+ 				m_tracePfc(1);
+-				m_paused[qIndex] = true;
++				if (!pause_before) {
++					m_paused[qIndex] = true;
++					transitioned = true;
++				}
+ 			}else{
+ 				m_tracePfc(0);
+-				Resume(qIndex);
++				if (pause_before) {
++					Resume(qIndex);
++					transitioned = true;
++				}
++			}
++			// Duplicate PAUSE/RESUME frames are real wire traffic, but they do not
++			// constitute another local pause-state transition and therefore are
++			// deliberately absent from the transition evidence stream.
++			if (transitioned && HasLimerCongestionSignalSink()) {
++				LimerCongestionSignalEvent event;
++				event.timestamp_ns = Simulator::Now().GetNanoSeconds();
++				event.event_type = ch.pfc.time > 0
++					? LIMER_SIGNAL_PFC_PAUSE_RECEIVE
++					: LIMER_SIGNAL_PFC_RESUME_RECEIVE;
++				event.node_id = m_node->GetId();
++				event.node_type = m_node->GetNodeType();
++				event.port_id = m_ifIndex;
++				event.pg = static_cast<uint16_t>(qIndex);
++				event.has_queue_state = true;
++				// Receive-side PFC gates an RDMA priority but RdmaEgressQueue does
++				// not expose bytes aggregated by PG.  Record the real port total;
++				// leave MMU thresholds invalid rather than inventing per-PG bytes.
++				event.queue_bytes = GetLimerQueueBytes();
++				event.signal_before = pause_before ? 1 : 0;
++				event.signal_after = m_paused[qIndex] ? 1 : 0;
++				event.pause_time = ch.pfc.time;
++				EmitLimerCongestionSignal(event);
+ 			}
+ 		}else { // non-PFC packets (data, ACK, NACK, CNP...)
+ 			uint32_t sip = ch.sip;
+@@ -516,7 +676,6 @@ namespace ns3 {
+ 				// TODO we may based on the ret do something
+ 			}
+ 		}
+-		return;
+ 	}
+ 
+ 	bool QbbNetDevice::Send(Ptr<Packet> packet, const Address &dest, uint16_t protocolNumber)
+@@ -529,6 +688,7 @@ namespace ns3 {
+  		m_macTxTrace(packet);
+ 		m_traceEnqueue(packet, qIndex);
+ 		m_queue->Enqueue(packet, qIndex);
++		ObserveLimerQueue();
+ 		// DequeueAndTransmit();
+ 		SwitchDequeueAndTransmit();
+ 		return true;
+@@ -606,27 +766,16 @@ namespace ns3 {
+ 		m_currentPkt = p;
+ 		m_phyTxBeginTrace(m_currentPkt);
+ 		Time txTime = m_bps.CalculateBytesTxTime(p->GetSize());
+-        //添加当前qp所要发送的最后一个packet txtime后回调 根据mtu
+-        //根据qpindex
+-        // 添加一个回调
+-		if(m_rdmaEQ!=nullptr&&m_rdmaEQ->m_qpGrp!=nullptr && m_node->GetNodeType() == 0){
+-			// int qIndex = m_rdmaEQ->GetNextQindex(m_paused);
+-			// if(qIndex != -1024) {
+-				// Ptr<RdmaQueuePair> lastQp = m_rdmaEQ->GetQp(qIndex);
+-				// std::cout<<" net: "<<this<<" QPindex: "<<qIndex<<" GetBytesLeft "<<lastQp->GetBytesLeft()<<" p->GetSize() "<<p->GetSize()<<std::endl;
+-				// std::cout<<" net: "<<this<<" p->GetSize() "<<p->GetSize()<<std::endl;
+-				// if(9000>=lastQp->GetBytesLeft()){
+-				if(p->GetSize()<9000&&p->GetSize()>60){	//增加判断当前packet是否是ack报文的逻辑。
+-				// if(lastQp->IsFinished()){s
+-					// Simulator::Schedule(txTime,&sendfinsh,this);
+-					CustomHeader ch(CustomHeader::L2_Header | CustomHeader::L3_Header | CustomHeader::L4_Header);
+-					// ch.getInt = 1; // parse INT header
+-					p->PeekHeader(ch);
+-					// std::cout<<" p->GetSize()>=lastQp->GetBytesLeft() "<<std::endl;
+-					Simulator::Schedule(txTime,&QbbNetDevice::SendCallback,this,p);
+-				}
+-			// }
+-        }
++		if (m_limerServiceFraction < 1.0) {
++			uint64_t impairedNs = static_cast<uint64_t>(std::ceil(
++				static_cast<double>(txTime.GetNanoSeconds()) /
++				m_limerServiceFraction));
++			txTime = NanoSeconds(impairedNs);
++		}
++		// Sender completion is emitted by RdmaHw::QpComplete only after the
++		// final byte is ACKed.  The former packet-size heuristic here fired on
++		// short packets before an RDMA WC existed and could let ASTRA advance a
++		// collective while data was still unacknowledged.
+ 		Time txCompleteTime = txTime + m_tInterframeGap;
+ 		NS_LOG_LOGIC("Schedule TransmitCompleteEvent in " << txCompleteTime.GetSeconds() << "sec");
+ 		Simulator::Schedule(txCompleteTime, &QbbNetDevice::TransmitComplete, this);
+@@ -636,6 +785,11 @@ namespace ns3 {
+ 		if (result == false)
+ 		{
+ 			m_phyTxDropTrace(p);
++			m_limerTxDrops++;
++			m_limerTxDropBytes += p->GetSize();
++		} else {
++			m_limerTxPackets++;
++			m_limerTxBytes += p->GetSize();
+ 		}
+ 		return result;
+ 	}
+@@ -656,24 +810,14 @@ namespace ns3 {
+ 		m_currentPkt = p;
+ 		m_phyTxBeginTrace(m_currentPkt);
+ 		Time txTime = m_bps.CalculateBytesTxTime(p->GetSize());
+-		if(m_rdmaEQ!=nullptr&&m_rdmaEQ->m_qpGrp!=nullptr && m_node->GetNodeType() == 2){
+-			// int qIndex = m_rdmaEQ->GetNextQindex(m_paused);
+-			// if(qIndex != -1024) {
+-				// Ptr<RdmaQueuePair> lastQp = m_rdmaEQ->GetQp(qIndex);
+-				// std::cout<<" net: "<<this<<" QPindex: "<<qIndex<<" GetBytesLeft "<<lastQp->GetBytesLeft()<<" p->GetSize() "<<p->GetSize()<<std::endl;
+-				// std::cout<<" net: "<<this<<" p->GetSize() "<<p->GetSize()<<std::endl;
+-				// if(9000>=lastQp->GetBytesLeft()){
+-				if(p->GetSize()<9000&&p->GetSize()>60){	//增加判断当前packet是否是ack报文的逻辑。
+-				// if(lastQp->IsFinished()){s
+-					// Simulator::Schedule(txTime,&sendfinsh,this);
+-					CustomHeader ch(CustomHeader::L2_Header | CustomHeader::L3_Header | CustomHeader::L4_Header);
+-					// ch.getInt = 1; // parse INT header
+-					p->PeekHeader(ch);
+-					// std::cout<<" p->GetSize()>=lastQp->GetBytesLeft() "<<std::endl;
+-					Simulator::Schedule(txTime,&QbbNetDevice::SendCallback,this,p);
+-				}
+-			// }
+-        }
++		if (m_limerServiceFraction < 1.0) {
++			uint64_t impairedNs = static_cast<uint64_t>(std::ceil(
++				static_cast<double>(txTime.GetNanoSeconds()) /
++				m_limerServiceFraction));
++			txTime = NanoSeconds(impairedNs);
++		}
++		// NVSwitch-hosted sends use the same ACK-qualified completion path in
++		// RdmaHw; do not infer completion from the final packet's length.
+ 		Time txCompleteTime = txTime + m_tInterframeGap;
+ 		// std::cout << "txCompleteTime: " << txCompleteTime << std::endl;
+ 		NS_LOG_LOGIC("Schedule TransmitCompleteEvent in " << txCompleteTime.GetSeconds() << "sec");
+@@ -684,6 +828,11 @@ namespace ns3 {
+ 		if (result == false)
+ 		{
+ 			m_phyTxDropTrace(p);
++			m_limerTxDrops++;
++			m_limerTxDropBytes += p->GetSize();
++		} else {
++			m_limerTxPackets++;
++			m_limerTxBytes += p->GetSize();
+ 		}
+ 		return result;
+ 	}
+@@ -706,6 +855,9 @@ namespace ns3 {
+    void QbbNetDevice::ReassignedQp(Ptr<RdmaQueuePair> qp){
+ 	   DequeueAndTransmit();
+    }
++   bool QbbNetDevice::RemoveQp(Ptr<RdmaQueuePair> qp){
++	   return m_rdmaEQ != 0 && m_rdmaEQ->RemoveQp(qp);
++   }
+    void QbbNetDevice::TriggerTransmit(){
+ 	   DequeueAndTransmit();
+    }
+@@ -726,29 +878,83 @@ namespace ns3 {
+ 	void QbbNetDevice::RdmaEnqueueHighPrioQ(Ptr<Packet> p){
+ 		m_traceEnqueue(p, 0);
+ 		m_rdmaEQ->EnqueueHighPrioQ(p);
++		ObserveLimerQueue();
+ 	}
+ 
+ 	void QbbNetDevice::TakeDown(){
+-		// TODO: delete packets in the queue, set link down
++			// Carrier loss is authoritative but may later be reversed by BringUp().
++			// Set it before draining/notifying so no same-timestamp callback can send
++			// another packet on the failed port.
++			if (!m_linkUp)
++				return;
++			m_linkUp = false;
++			m_linkChangeCallbacks();
++			SetLimerForcedLinkDown(true);
++		if (!m_nextSend.IsExpired())
++			Simulator::Cancel(m_nextSend);
++
+ 		if (m_node->GetNodeType() == 0){
+ 			// clean the high prio queue
+-			m_rdmaEQ->CleanHighPrio(m_traceDrop);
++			while (m_rdmaEQ->m_ackQ->GetNPackets() > 0) {
++				Ptr<Packet> p = m_rdmaEQ->m_ackQ->Dequeue();
++				m_limerTxDrops++;
++				m_limerTxDropBytes += p->GetSize();
++				m_phyTxDropTrace(p);
++				m_traceDrop(p, 0);
++			}
+ 			// notify driver/RdmaHw that this link is down
+ 			m_rdmaLinkDownCb(this);
+ 		}else { // switch
+-			// clean the queue
++			// Drain the failed egress and release the switch MMU's ingress and
++			// egress admission accounting for every discarded packet.
+ 			for (uint32_t i = 0; i < qCnt; i++)
+ 				m_paused[i] = false;
+ 			while (1){
+ 				Ptr<Packet> p = m_queue->DequeueRR(m_paused);
+ 				if (p == 0)
+ 					 break;
+-				m_traceDrop(p, m_queue->GetLastQueue());
++				uint32_t qIndex = m_queue->GetLastQueue();
++				m_node->SwitchNotifyDrop(m_ifIndex, qIndex, p);
++				m_limerTxDrops++;
++				m_limerTxDropBytes += p->GetSize();
++				m_phyTxDropTrace(p);
++				m_traceDrop(p, qIndex);
+ 			}
+ 			// TODO: Notify switch that this link is down
++			}
++		}
++
++	void QbbNetDevice::BringUp(){
++			if (m_linkUp)
++				return;
++
++			// A carrier reset clears link-local PFC state.  In particular, a resume
++			// frame may have been lost while the carrier was down; retaining that
++			// pause bit would leave an otherwise healthy restored port deadlocked.
++			for (uint32_t i = 0; i < qCnt; i++)
++				m_paused[i] = false;
++
++			// Clear the event latch before NotifyLinkUp() fires callbacks so an
++			// observer invoked by the callback sees one coherent UP state.
++			SetLimerForcedLinkDown(false);
++			NotifyLinkUp();
++
++			// PhysicalLinkUp restores both endpoints and their shared channel in one
++			// public-LP barrier.  Put the actual dequeue kick back onto this node's
++			// private LP; a ScheduleNow() from the public LP would permanently move
++			// later TransmitComplete/RTO work onto the global synchronization path.
++			// Preserve the NVLS-specific send/completion chain as well.
++			if (m_node->GetNodeType() == 0) {
++				Simulator::ScheduleWithContext(m_node->GetId(), TimeStep(0),
++					&QbbNetDevice::DequeueAndTransmit, this);
++			} else if (m_node->GetNodeType() == 2 && nvls_enable == 1) {
++				Simulator::ScheduleWithContext(m_node->GetId(), TimeStep(0),
++					&QbbNetDevice::SwitchAsHostSend, this);
++			} else {
++				Simulator::ScheduleWithContext(m_node->GetId(), TimeStep(0),
++					&QbbNetDevice::SwitchDequeueAndTransmit, this);
++			}
+ 		}
+-		m_linkUp = false;
+-	}
+ 
+ 	void QbbNetDevice::UpdateNextAvail(Time t){
+ 		if (!m_nextSend.IsExpired() && t < Time(m_nextSend.GetTs())){
+diff --git a/simulation/src/point-to-point/model/qbb-net-device.h b/simulation/src/point-to-point/model/qbb-net-device.h
+index 4ffd88d..00f3eeb 100644
+--- a/simulation/src/point-to-point/model/qbb-net-device.h
++++ b/simulation/src/point-to-point/model/qbb-net-device.h
+@@ -57,6 +57,7 @@ public:
+ 	uint32_t GetNBytes(uint32_t qIndex);
+ 	uint32_t GetFlowCount(void);
+ 	Ptr<RdmaQueuePair> GetQp(uint32_t i);
++	bool RemoveQp(Ptr<RdmaQueuePair> qp);
+ 	void RecoverQueue(uint32_t i);
+ 	void EnqueueHighPrioQ(Ptr<Packet> p);
+ 	void CleanHighPrio(TracedCallback<Ptr<const Packet>, uint32_t> dropCb);
+@@ -102,6 +103,52 @@ public:
+   virtual bool Send(Ptr<Packet> packet, const Address &dest, uint16_t protocolNumber);
+   virtual bool SwitchSend (uint32_t qIndex, Ptr<Packet> packet, CustomHeader &ch);
+ 
++  // LIMER telemetry is kept on the physical device so every endpoint
++  // (HOST, SWITCH, and NVSWITCH) exposes the same authoritative counters.
++  // The queue high-water marks are updated from existing enqueue events;
++  // periodic sampling therefore cannot miss a transient peak between ticks.
++  uint64_t m_limerTxPackets = 0;
++  uint64_t m_limerTxBytes = 0;
++  uint64_t m_limerRxPackets = 0;
++  uint64_t m_limerRxBytes = 0;
++  uint64_t m_limerTxDrops = 0;
++  uint64_t m_limerTxDropBytes = 0;
++  uint64_t m_limerRxDrops = 0;
++  uint64_t m_limerRxDropBytes = 0;
++  uint64_t m_limerLinkErrors = 0;
++  uint64_t m_limerRecoveredPackets = 0;
++  uint64_t m_limerRecoveredBytes = 0;
++  uint64_t m_limerMaxQueueBytes = 0;
++  uint64_t m_limerMaxQueuePackets = 0;
++  uint64_t m_limerMaxQueueTimestampNs = 0;
++  uint64_t m_limerLinkFlaps = 0;
++  uint64_t m_limerLastLinkDownNs = 0;
++  uint64_t m_limerLastLinkUpNs = 0;
++
++  uint64_t GetLimerQueueBytes() const;
++  uint64_t GetLimerQueuePackets() const;
++  void ObserveLimerQueue();
++  void ResetLimerQueuePeaks();
++  // A transient benchmark flap uses a severe temporary rate reduction rather
++  // than mutating SimAI's routing tables. This observability latch preserves
++  // the down/up transition even when both occur between snapshots.
++  void SetLimerForcedLinkDown(bool down);
++  bool GetLimerLinkUp() const;
++  uint64_t GetLimerCumulativeDownNs() const;
++  void SetLimerRecoverRxErrors(bool enabled, uint64_t delayNs);
++  // Apply a carrier-up service-rate impairment without changing the
++  // configured physical DataRate.  Values are in (0, 1]; the serialization
++  // time of every packet is divided by this fraction.  This lets P2 model a
++  // slower egress service process (and the resulting queue/latency growth)
++  // without exposing the injected fraction through configured bandwidth.
++  void SetLimerServiceFraction(double fraction);
++  double GetLimerServiceFraction() const;
++  // Account a frame invalidated by a real carrier transition.  QbbChannel
++  // calls this when the frame's captured carrier epoch no longer matches the
++  // live link, including the down->up case where IsLinkUp() is true again by
++  // the time the old frame would otherwise arrive.
++  void ReceiveLimerCarrierDrop(Ptr<Packet> packet);
++
+   /**
+    * Get the size of Tx buffer available in the device
+    *
+@@ -124,6 +171,7 @@ public:
+    virtual bool IsQbb(void) const;
+    void NewQp(Ptr<RdmaQueuePair> qp);
+    void ReassignedQp(Ptr<RdmaQueuePair> qp);
++   bool RemoveQp(Ptr<RdmaQueuePair> qp);
+    void TriggerTransmit();
+    void SwitchAsHostSend(void); // Switch as a Host to send packet, such as reply ack with NVLS ON
+    void SwitchDequeueAndTransmit(void); // Switch transfer to other node
+@@ -131,6 +179,7 @@ public:
+    void SwitchAsHostTransmitComplete(void);
+    
+ 	void SendPfc(uint32_t qIndex, uint32_t type); // type: 0 = pause, 1 = resume
++  uint32_t GetPfcPauseTime() const { return m_pausetime; }
+   Ptr<Packet> NICSendPfc(uint32_t qIndex, uint32_t type);
+ 
+ 	TracedCallback<Ptr<const Packet>, uint32_t> m_traceEnqueue;
+@@ -162,6 +211,13 @@ protected:
+   Ptr<BEgressQueue> m_queue;
+ 
+   Ptr<QbbChannel> m_channel;
++  bool m_limerForcedLinkDown = false;
++  uint64_t m_limerCumulativeDownNs = 0;
++  bool m_limerRecoverRxErrors = false;
++  uint64_t m_limerRecoveryDelayNs = 0;
++  double m_limerServiceFraction = 1.0;
++
++  void DeliverLimerReceivedPacket(Ptr<Packet> packet);
+   
+   //pfc
+   bool m_qbbEnabled;	//< PFC behaviour enabled
+@@ -210,7 +266,8 @@ public:
+   Callback<void, uint32_t, uint64_t> m_rdmaUpdateTxBytes;
+ 
+ 	Ptr<RdmaEgressQueue> GetRdmaQueue();
+-	void TakeDown(); // take down this device
++	void TakeDown(); // take down this device without detaching its channel
++	void BringUp();  // restore carrier state; does not rebuild routes or move QPs
+ 	void UpdateNextAvail(Time t);
+ 
+ 	TracedCallback<Ptr<const Packet>, Ptr<RdmaQueuePair> > m_traceQpDequeue; // the trace for printing dequeue
+diff --git a/simulation/src/point-to-point/model/rdma-driver.cc b/simulation/src/point-to-point/model/rdma-driver.cc
+index d7b5939..bb97067 100644
+--- a/simulation/src/point-to-point/model/rdma-driver.cc
++++ b/simulation/src/point-to-point/model/rdma-driver.cc
+@@ -65,8 +65,8 @@ void RdmaDriver::SetRdmaHw(Ptr<RdmaHw> rdma){
+ 	m_rdma = rdma;
+ }
+ 
+-void RdmaDriver::AddQueuePair(uint32_t src, uint32_t dest, uint64_t tag, uint64_t size, uint16_t pg, Ipv4Address sip, Ipv4Address dip, uint16_t sport, uint16_t dport, uint32_t win, uint64_t baseRtt, Callback<void> notifyAppFinish, Callback<void> notifyAppSent){
+-	m_rdma->AddQueuePair(src, dest, tag, size, pg, sip, dip, sport, dport, win, baseRtt, notifyAppFinish, notifyAppSent);
++void RdmaDriver::AddQueuePair(uint32_t src, uint32_t dest, uint64_t tag, uint64_t size, uint16_t pg, Ipv4Address sip, Ipv4Address dip, uint16_t sport, uint16_t dport, uint32_t win, uint64_t baseRtt, Callback<void> notifyAppFinish, Callback<void> notifyAppSent, uint32_t limerTrafficClass){
++	m_rdma->AddQueuePair(src, dest, tag, size, pg, sip, dip, sport, dport, win, baseRtt, notifyAppFinish, notifyAppSent, limerTrafficClass);
+ }
+ 
+ void RdmaDriver::EnbaleNVLS() {
+diff --git a/simulation/src/point-to-point/model/rdma-driver.h b/simulation/src/point-to-point/model/rdma-driver.h
+index 94d33db..4c37efc 100644
+--- a/simulation/src/point-to-point/model/rdma-driver.h
++++ b/simulation/src/point-to-point/model/rdma-driver.h
+@@ -34,7 +34,7 @@ public:
+ 	void SetRdmaHw(Ptr<RdmaHw> rdma);
+ 
+ 	// add a queue pair
+-	void AddQueuePair(uint32_t src, uint32_t dest, uint64_t tag, uint64_t size, uint16_t pg, Ipv4Address _sip, Ipv4Address _dip, uint16_t _sport, uint16_t _dport, uint32_t win, uint64_t baseRtt, Callback<void> notifyAppFinish, Callback<void> notifyAppSent);
++	void AddQueuePair(uint32_t src, uint32_t dest, uint64_t tag, uint64_t size, uint16_t pg, Ipv4Address _sip, Ipv4Address _dip, uint16_t _sport, uint16_t _dport, uint32_t win, uint64_t baseRtt, Callback<void> notifyAppFinish, Callback<void> notifyAppSent, uint32_t limerTrafficClass = LIMER_RDMA_TRAFFIC_TRAINING);
+ 
+ 	// enable NVLS
+ 	void EnbaleNVLS();
 diff --git a/simulation/src/point-to-point/model/rdma-hw.cc b/simulation/src/point-to-point/model/rdma-hw.cc
-index e624698..bbda42d 100644
+index e624698..6734176 100644
 --- a/simulation/src/point-to-point/model/rdma-hw.cc
 +++ b/simulation/src/point-to-point/model/rdma-hw.cc
-@@ -569,6 +569,8 @@ int RdmaHw::ReceiveAck(Ptr<Packet> p, CustomHeader &ch){
+@@ -12,13 +12,40 @@
+ #include "ppp-header.h"
+ #include "qbb-header.h"
+ #include "cn-header.h"
++#include "limer-congestion-signal.h"
+ #ifdef NS3_MTP
+ #include "ns3/mtp-interface.h"
+ #endif
+ #include <iostream>	// debug
++#include <cstdlib>
++#include <limits>
++#include <string>
++#include <algorithm>
++
++// Optional experimental scheduler owned by the Astra frontend. Other ns-3
++// programs and the default baseline preserve the original ECMP decision.
++extern "C" uint32_t limer_split_select_qp(void*, uint32_t) __attribute__((weak));
++extern "C" void limer_split_ack_progress(void*, uint64_t) __attribute__((weak));
+ 
+ namespace ns3{
+ 
++namespace {
++void FillSignalFromQp(Ptr<RdmaQueuePair> qp,
++		LimerCongestionSignalEvent* event) {
++	if (qp == nullptr || event == nullptr) return;
++	event->has_flow = true;
++	event->flow_src = qp->GetSrc();
++	event->flow_dst = qp->GetDest();
++	event->flow_sport = qp->sport;
++	event->flow_dport = qp->dport;
++	event->pg = qp->m_pg;
++	event->packet_sip = qp->sip.Get();
++	event->packet_dip = qp->dip.Get();
++	event->packet_sport = qp->sport;
++	event->packet_dport = qp->dport;
++}
++}  // namespace
++
+ TypeId RdmaHw::GetTypeId (void)
+ {
+ 	static TypeId tid = TypeId ("ns3::RdmaHw")
+@@ -198,6 +225,55 @@ TypeId RdmaHw::GetTypeId (void)
+ }
+ 
+ RdmaHw::RdmaHw(){
++	m_limerRtoUs = 100;
++	m_limerRetryLimit = 7;
++	m_limerRecoveryTransportEnabled = false;
++
++	const char *transportEnv =
++		std::getenv("LIMER_RDMA_RECOVERY_TRANSPORT_ENABLE");
++	// Accept only the recorded, explicit value "1".  Missing or malformed
++	// ambient configuration therefore leaves the unmodified baseline active.
++	m_limerRecoveryTransportEnabled =
++		transportEnv != NULL && std::string(transportEnv) == "1";
++
++	const char *rtoEnv = std::getenv("LIMER_RDMA_RTO_US");
++	if (rtoEnv != NULL && *rtoEnv != '\0') {
++		char *end = NULL;
++		unsigned long long value = std::strtoull(rtoEnv, &end, 10);
++		if (end != rtoEnv && *end == '\0' && value > 0)
++			m_limerRtoUs = static_cast<uint64_t>(value);
++	}
++	const char *retryEnv = std::getenv("LIMER_RDMA_RETRY_LIMIT");
++	if (retryEnv != NULL && *retryEnv != '\0') {
++		char *end = NULL;
++		unsigned long value = std::strtoul(retryEnv, &end, 10);
++		if (end != retryEnv && *end == '\0' &&
++			value <= std::numeric_limits<uint32_t>::max())
++			m_limerRetryLimit = static_cast<uint32_t>(value);
++	}
++}
++
++void RdmaHw::SetLimerEventCallback(LimerEventCallback cb){
++	m_limerEventCallback = cb;
++}
++
++void RdmaHw::EmitLimerEvent(uint32_t eventType, Ptr<RdmaQueuePair> qp, uint64_t detail){
++	if (!m_limerEventCallback.IsNull())
++		m_limerEventCallback(eventType, qp,
++			Simulator::Now().GetNanoSeconds(), detail);
++}
++
++bool RdmaHw::IsUsableNic(uint32_t nicIdx) const{
++	return nicIdx < m_nic.size() && m_nic[nicIdx].dev != NULL &&
++		m_nic[nicIdx].qpGrp != NULL;
++}
++
++uint32_t RdmaHw::FindNicIdx(Ptr<QbbNetDevice> dev) const{
++	for (uint32_t i = 0; i < m_nic.size(); ++i) {
++		if (m_nic[i].dev == dev)
++			return i;
++	}
++	return std::numeric_limits<uint32_t>::max();
+ }
+ 
+ void RdmaHw::enable_nvls() {
+@@ -218,6 +294,7 @@ void RdmaHw::SetNode(Ptr<Node> node){
+ void RdmaHw::Setup(QpCompleteCallback cb,SendCompleteCallback send_cb){
+ 	tx_bytes.resize(m_nic.size());
+ 	last_tx_bytes.resize(m_nic.size());
++	m_limerNacksByPort.resize(m_nic.size(), 0);
+ 	for (uint32_t i = 0; i < m_nic.size(); i++){
+ 		tx_bytes[i] = 0;
+ 		last_tx_bytes[i] = 0;
+@@ -241,6 +318,9 @@ void RdmaHw::Setup(QpCompleteCallback cb,SendCompleteCallback send_cb){
+ }
+ uint32_t ip_to_node_id(Ipv4Address ip) { return (ip.Get() >> 8) & 0xffff; }
+ uint32_t RdmaHw::GetNicIdxOfQp(Ptr<RdmaQueuePair> qp){
++	if (qp != NULL && IsUsableNic(qp->m_activeNicIdx))
++		return qp->m_activeNicIdx;
++
+ 	uint32_t src = qp->m_src;
+ 	uint32_t dst = qp->m_dest;
+ 	if(src / m_gpus_per_server == dst / m_gpus_per_server || m_rtTable_nxthop_nvswitch.count(qp->dip.Get()) != 0){ // src and dst are in the same server, communicate through nvswitch
+@@ -258,6 +338,7 @@ uint32_t RdmaHw::GetNicIdxOfQp(Ptr<RdmaQueuePair> qp){
+ 			NS_ASSERT_MSG(false, "We assume at least one NIC is alive");
+ 		}
+ 	}
++	return std::numeric_limits<uint32_t>::max();
+ }
+ uint64_t RdmaHw::GetQpKey(uint32_t dip, uint16_t sport, uint16_t pg){
+ 	return ((uint64_t)dip << 32) | ((uint64_t)sport << 16) | (uint64_t)pg;
+@@ -269,7 +350,28 @@ Ptr<RdmaQueuePair> RdmaHw::GetQp(uint32_t dip, uint16_t sport, uint16_t pg){
+ 		return it->second;
+ 	return NULL;
+ }
+-void RdmaHw::AddQueuePair(uint32_t src, uint32_t dest, uint64_t tag, uint64_t size, uint16_t pg, Ipv4Address sip, Ipv4Address dip, uint16_t sport, uint16_t dport, uint32_t win, uint64_t baseRtt, Callback<void> notifyAppFinish, Callback<void> notifyAppSent){
++
++void RdmaHw::InitializeQpRateForNic(Ptr<RdmaQueuePair> qp, uint32_t nicIdx){
++	NS_ASSERT_MSG(IsUsableNic(nicIdx), "QP is bound to an invalid NIC");
++	DataRate lineRate = m_nic[nicIdx].dev->GetDataRate();
++	qp->m_rate = lineRate;
++	qp->m_max_rate = lineRate;
++	if (m_cc_mode == 1){
++		qp->mlx.m_targetRate = lineRate;
++	}else if (m_cc_mode == 3){
++		qp->hp.m_curRate = lineRate;
++		if (m_multipleRate){
++			for (uint32_t i = 0; i < IntHeader::maxHop; i++)
++				qp->hp.hopState[i].Rc = lineRate;
++		}
++	}else if (m_cc_mode == 7){
++		qp->tmly.m_curRate = lineRate;
++	}else if (m_cc_mode == 10){
++		qp->hpccPint.m_curRate = lineRate;
++	}
++}
++
++void RdmaHw::AddQueuePair(uint32_t src, uint32_t dest, uint64_t tag, uint64_t size, uint16_t pg, Ipv4Address sip, Ipv4Address dip, uint16_t sport, uint16_t dport, uint32_t win, uint64_t baseRtt, Callback<void> notifyAppFinish, Callback<void> notifyAppSent, uint32_t limerTrafficClass){
+ 	// create qp
+ 	Ptr<RdmaQueuePair> qp = CreateObject<RdmaQueuePair>(pg, sip, dip, sport, dport);
+ 	qp->SetSrc(src);
+@@ -282,46 +384,104 @@ void RdmaHw::AddQueuePair(uint32_t src, uint32_t dest, uint64_t tag, uint64_t si
+ 	qp->SetVarWin(m_var_win);
+ 	qp->SetAppNotifyCallback(notifyAppFinish);
+ 	qp->SetAppSentCallback(notifyAppSent);
+-	// add qp
++	qp->SetLimerTrafficClass(limerTrafficClass);
++	qp->m_rtoUs = m_limerRtoUs;
++	qp->m_retryLimit = m_limerRetryLimit;
++
++	// Preserve the original SimAI ECMP decision for the active rail in every
++	// mode.  Recovery transport may additionally pre-bind another usable rail,
++	// but opting in must never remap the primary baseline traffic.
+ 	uint32_t nic_idx = GetNicIdxOfQp(qp);
++	if (limer_split_select_qp) {
++		const uint32_t selected = limer_split_select_qp(PeekPointer(qp), nic_idx);
++		if (selected != nic_idx) {
++			auto route = m_rtTable.find(dip.Get());
++			NS_ABORT_MSG_IF(route == m_rtTable.end() ||
++				std::find(route->second.begin(),route->second.end(),selected)==route->second.end(),
++				"split-selected NIC is not an eligible route to destination");
++		}
++		nic_idx = selected;
++	}
++	NS_ASSERT_MSG(IsUsableNic(nic_idx), "QP is bound to an invalid primary NIC");
++	NS_ASSERT_MSG(m_gpus_per_server > 0, "GPUsPerServer must be non-zero");
++	bool interServer = src / m_gpus_per_server != dest / m_gpus_per_server;
++	qp->m_primaryNicIdx = nic_idx;
++	qp->m_activeNicIdx = nic_idx;
++	if (interServer && m_limerRecoveryTransportEnabled){
++		auto route = m_rtTable.find(dip.Get());
++		NS_ASSERT_MSG(route != m_rtTable.end() && !route->second.empty(),
++			"Inter-server QP has no route candidates");
++		const std::vector<int> &candidates = route->second;
++		for (uint32_t i = 0; i < candidates.size(); ++i){
++			int candidate = candidates[i];
++			if (candidate >= 0 && static_cast<uint32_t>(candidate) != nic_idx &&
++				IsUsableNic(static_cast<uint32_t>(candidate))){
++				qp->m_backupNicIdx = static_cast<uint32_t>(candidate);
++				qp->m_backupReady = true;
++				qp->m_backupReadyTimestampNs = Simulator::Now().GetNanoSeconds();
++				break;
++			}
++		}
++	}
++	qp->m_limerState = LIMER_RDMA_QP_ACTIVE_PRIMARY;
++
++	uint64_t key = GetQpKey(dip.Get(), sport, pg);
++	auto existingQp = m_qpMap.find(key);
++	NS_ABORT_MSG_IF(existingQp != m_qpMap.end(),
++		"RDMA QP key collision before install: src=" << src
++		<< " dst=" << dest << " dip=" << dip << " sport=" << sport
++		<< " pg=" << pg << " existing_qp=" << PeekPointer(existingQp->second)
++		<< " new_qp=" << PeekPointer(qp));
+ 
+ 	// std::cout << "src is: " << src << ", dst is: " << dest <<  ", nic_idx: " << nic_idx << ", and the m_nic size is: " << m_nic.size() << std::endl;
+ 	// Assign the qp to specific qbbnetdevice
+ 	m_nic[nic_idx].qpGrp->AddQp(qp);
+-	uint64_t key = GetQpKey(dip.Get(), sport, pg);
+-	m_qpMap[key] = qp;
++	auto insertedQp = m_qpMap.emplace(key, qp);
++	NS_ABORT_MSG_IF(!insertedQp.second,
++		"RDMA QP key insertion unexpectedly failed: src=" << src
++		<< " dst=" << dest << " sport=" << sport << " pg=" << pg);
+ 	qp_cnp[key] = 0;
+ 	last_qp_cnp[key] = 0;
+ 	last_qp_rate[key] = 0;
+ 
+ 	// set init variables
+-	DataRate m_bps = m_nic[nic_idx].dev->GetDataRate();
+-	qp->m_rate = m_bps;
+-	qp->m_max_rate = m_bps;
+-	if (m_cc_mode == 1){
+-		qp->mlx.m_targetRate = m_bps;
+-	}else if (m_cc_mode == 3){
+-		qp->hp.m_curRate = m_bps;
+-		if (m_multipleRate){
+-			for (uint32_t i = 0; i < IntHeader::maxHop; i++)
+-				qp->hp.hopState[i].Rc = m_bps;
+-		}
+-	}else if (m_cc_mode == 7){
+-		qp->tmly.m_curRate = m_bps;
+-	}else if (m_cc_mode == 10){
+-		qp->hpccPint.m_curRate = m_bps;
+-	}
++	InitializeQpRateForNic(qp, nic_idx);
+ 	// NVLS settings
+ 	if(nvls_enable == 1) qp->nvls_enable = 1;
+ 	else qp->nvls_enable = 0;
++	EmitLimerEvent(LIMER_RDMA_EVENT_QP_CREATED, qp, nic_idx);
++	if (qp->m_backupReady)
++		EmitLimerEvent(LIMER_RDMA_EVENT_BACKUP_READY, qp, qp->m_backupNicIdx);
+ 	// Notify Nic
+ 	m_nic[nic_idx].dev->NewQp(qp);
+ }
+ 
+ void RdmaHw::DeleteQueuePair(Ptr<RdmaQueuePair> qp){
++	CancelRto(qp);
++	// Completion is handled on the sender node's private LP, the same LP that
++	// owns its Qbb schedulers.  Remove the terminal Ptr immediately from every
++	// possible rail without taking the global MTP critical section (callbacks
++	// above may themselves use it, and nested acquisition would deadlock).
++	uint32_t removedGroups = 0;
++	for (uint32_t i = 0; i < m_nic.size(); ++i){
++		if (m_nic[i].dev != NULL && m_nic[i].dev->RemoveQp(qp))
++			++removedGroups;
++	}
++	NS_ASSERT_MSG(removedGroups == 1,
++		"A completed RDMA QP must have exactly one active egress binding");
+ 	// remove qp from the m_qpMap
+ 	uint64_t key = GetQpKey(qp->dip.Get(), qp->sport, qp->m_pg);
+-	m_qpMap.erase(key);
++	auto installedQp = m_qpMap.find(key);
++	NS_ABORT_MSG_IF(installedQp == m_qpMap.end(),
++		"RDMA QP deletion found no installed key: src=" << qp->m_src
++		<< " dst=" << qp->m_dest << " sport=" << qp->sport
++		<< " pg=" << qp->m_pg);
++	NS_ABORT_MSG_IF(installedQp->second != qp,
++		"RDMA QP deletion found a different QP at key: src=" << qp->m_src
++		<< " dst=" << qp->m_dest << " sport=" << qp->sport
++		<< " pg=" << qp->m_pg << " installed_qp="
++		<< PeekPointer(installedQp->second) << " deleting_qp=" << PeekPointer(qp));
++	m_qpMap.erase(installedQp);
+ 	qp_cnp.erase(key);
+ 	last_qp_cnp.erase(key);
+ 	last_qp_rate.erase(key);
+@@ -390,19 +550,11 @@ void RdmaHw::DeleteRxQp(uint32_t dip, uint16_t pg, uint16_t dport){
+ 
+ int RdmaHw::SendPacketComplete(Ptr<Packet> p, CustomHeader &ch)
+ {
+-	uint16_t qIndex = ch.udp.pg;
+-	uint16_t port = ch.udp.sport;
+-	uint32_t seq = ch.udp.seq;
+-	// uint8_t cnp = (ch.flags >> qbbHeader::FLAG_CNP) & 1;
+-	// int i;
+-	Ptr<RdmaQueuePair> qp = GetQp(ch.dip, port, qIndex);
+-	if (qp == NULL)
+-	{
+-		return 0;
+-	}
+-	uint32_t nic_idx = GetNicIdxOfQp(qp);
+-	Ptr<QbbNetDevice> dev = m_nic[nic_idx].dev;
+-	SendComplete(qp);
++	// Physical serialization is not an RDMA completion.  SUCCESS is emitted
++	// only from QpComplete after the receiver's cumulative ACK covers m_size.
++	(void)p;
++	(void)ch;
++	return 0;
+ }
+ 
+ void RdmaHw::SendComplete(Ptr<RdmaQueuePair> qp)
+@@ -426,7 +578,7 @@ int RdmaHw::ReceiveUdp(Ptr<Packet> p, CustomHeader &ch){
+ 	rxQp->m_milestone_rx = m_ack_interval;
+ 
+ 	int x = ReceiverCheckSeq(ch.udp.seq, rxQp, payload_size);
+-	if (x == 1 || x == 2){ //generate ACK or NACK
++	if (x == 1 || x == 2 || x == 3){ // ACK new data, NACK a gap, or re-ACK a duplicate
+ 		qbbHeader seqh;
+ 		seqh.SetSeq(rxQp->ReceiverNextExpectedSeq);
+ 		seqh.SetPG(ch.udp.pg);
+@@ -442,7 +594,7 @@ int RdmaHw::ReceiveUdp(Ptr<Packet> p, CustomHeader &ch){
+ 		Ipv4Header head;	// Prepare IPv4 header
+ 		head.SetDestination(Ipv4Address(ch.sip));
+ 		head.SetSource(Ipv4Address(ch.dip));
+-		head.SetProtocol(x == 1 ? 0xFC : 0xFD); //ack=0xFC nack=0xFD
++		head.SetProtocol(x == 2 ? 0xFD : 0xFC); //ack=0xFC nack=0xFD
+ 		head.SetTtl(64);
+ 		head.SetPayloadSize(newp->GetSize());
+ 		head.SetIdentification(rxQp->m_ipid++);
+@@ -457,6 +609,28 @@ int RdmaHw::ReceiveUdp(Ptr<Packet> p, CustomHeader &ch){
+ 		uint32_t did = (dip >> 8) & 0xffff;
+ 		// send
+ 		uint32_t nic_idx = GetNicIdxOfRxQp(rxQp);
++		if (ecnbits != 0 && HasLimerCongestionSignalSink()) {
++			LimerCongestionSignalEvent event;
++			event.timestamp_ns = Simulator::Now().GetNanoSeconds();
++			event.event_type = LIMER_SIGNAL_CNP_ACK_EMIT;
++			event.node_id = m_node->GetId();
++			event.node_type = m_node->GetNodeType();
++			event.port_id = m_nic[nic_idx].dev->GetIfIndex();
++			event.pg = ch.udp.pg;
++			event.has_flow = true;
++			event.has_packet_tuple = true;
++			event.flow_src = (ch.sip >> 8) & 0xffff;
++			event.flow_dst = (ch.dip >> 8) & 0xffff;
++			event.flow_sport = ch.udp.sport;
++			event.flow_dport = ch.udp.dport;
++			event.packet_sip = ch.dip;
++			event.packet_dip = ch.sip;
++			event.packet_sport = ch.udp.dport;
++			event.packet_dport = ch.udp.sport;
++			event.signal_before = ecnbits;
++			event.signal_after = 1;
++			EmitLimerCongestionSignal(event);
++		}
+ 		m_nic[nic_idx].dev->RdmaEnqueueHighPrioQ(newp);
+ 		// 发送给目标 NVSwitch 的报文
+ 		if(did == m_node->GetId() && m_node->GetNodeType() == 2 && ch.m_tos == 4) m_nic[nic_idx].dev->SwitchAsHostSend();
+@@ -514,30 +688,63 @@ int RdmaHw::ReceiveAck(Ptr<Packet> p, CustomHeader &ch){
+ 	uint64_t seq = ch.ack.seq;
+ 	uint8_t cnp = (ch.ack.flags >> qbbHeader::FLAG_CNP) & 1;
+ 
+-
+-	int i;
+ 	Ptr<RdmaQueuePair> qp = GetQp(ch.sip, port, qIndex);
+-	if (qp == NULL){
++	if (qp == NULL || qp->IsLimerTerminal()){
+ 		return 0;
+ 	}
+ 
+ 	uint32_t nic_idx = GetNicIdxOfQp(qp);
+-	Ptr<QbbNetDevice> dev = m_nic[nic_idx].dev;
+-	if (m_ack_interval == 0)
+-		std::cout << "ERROR: shouldn't receive ack\n";
+-	else {
+-		if (!m_backto0){
+-			qp->Acknowledge(seq);
+-		}else {
+-			uint64_t goback_seq = seq / m_chunk * m_chunk;
+-			qp->Acknowledge(goback_seq);
+-		}
+-		if (qp->IsFinished()){
+-			QpComplete(qp);
+-		}
++	if (cnp && HasLimerCongestionSignalSink()) {
++		LimerCongestionSignalEvent event;
++		event.timestamp_ns = Simulator::Now().GetNanoSeconds();
++		event.event_type = LIMER_SIGNAL_CNP_ACK_RX;
++		event.node_id = m_node->GetId();
++		event.node_type = m_node->GetNodeType();
++		event.port_id = m_nic[nic_idx].dev->GetIfIndex();
++		FillSignalFromQp(qp, &event);
++		event.packet_sip = ch.sip;
++		event.has_packet_tuple = true;
++		event.packet_dip = ch.dip;
++		event.packet_sport = ch.ack.sport;
++		event.packet_dport = ch.ack.dport;
++		event.signal_before = 0;
++		event.signal_after = 1;
++		EmitLimerCongestionSignal(event);
++	}
++	uint64_t oldUna = qp->snd_una;
++	if (!m_backto0 || m_chunk == 0){
++		qp->Acknowledge(seq);
++	}else {
++		uint64_t goback_seq = seq / m_chunk * m_chunk;
++		qp->Acknowledge(goback_seq);
++	}
++	bool progressed = qp->snd_una > oldUna;
++	if (progressed && limer_split_ack_progress) {
++		const uint64_t size=qp->GetInitialSize();
++		limer_split_ack_progress(PeekPointer(qp),
++			std::min(qp->snd_una,size)-std::min(oldUna,size));
++	}
++	if (progressed){
++		qp->m_retryCount = 0;
++		CancelRto(qp);
++		uint64_t now = Simulator::Now().GetNanoSeconds();
++		if (qp->m_firstAckProgressTimestampNs == 0)
++			qp->m_firstAckProgressTimestampNs = now;
++		if (qp->m_limerState == LIMER_RDMA_QP_ACTIVE_BACKUP &&
++			qp->m_backupFirstAckTimestampNs == 0)
++			qp->m_backupFirstAckTimestampNs = now;
++		EmitLimerEvent(LIMER_RDMA_EVENT_ACK_PROGRESS, qp, qp->snd_una);
+ 	}
++
+ 	if (ch.l3Prot == 0xFD) // NACK
+ 		RecoverQueue(qp);
++	else if (progressed && !qp->IsFinished())
++		ArmRto(qp, false);
++
++	if (qp->IsFinished()){
++		QpComplete(qp);
++		return 0;
++	}
+ 
+ 	// handle cnp
+ 	if (cnp){
+@@ -557,8 +764,6 @@ int RdmaHw::ReceiveAck(Ptr<Packet> p, CustomHeader &ch){
+ 	}else if (m_cc_mode == 10){
+ 		HandleAckHpPint(qp, p, ch);
+ 	}
+-	uint32_t sip = ch.sip;
+-	uint32_t sid = (sip >> 8) & 0xffff;
+ 	uint32_t dip = ch.dip;
+ 	uint32_t did = (dip >> 8) & 0xffff;
+ 	// ACK may advance the on-the-fly window, allowing more packets to send
+@@ -569,6 +774,8 @@ int RdmaHw::ReceiveAck(Ptr<Packet> p, CustomHeader &ch){
  }
  
  int RdmaHw::Receive(Ptr<Packet> p, CustomHeader &ch){
@@ -11,15 +2183,260 @@ index e624698..bbda42d 100644
  	if (ch.l3Prot == 0x11){ // UDP
  		ReceiveUdp(p, ch);
  	}else if (ch.l3Prot == 0xFF){ // CNP
-@@ -596,6 +598,7 @@ int RdmaHw::ReceiverCheckSeq(uint64_t seq, Ptr<RdmaRxQueuePair> q, uint32_t size
+@@ -596,6 +803,10 @@ int RdmaHw::ReceiverCheckSeq(uint64_t seq, Ptr<RdmaRxQueuePair> q, uint32_t size
  	} else if (seq > expected) {
  		// Generate NACK
  		if (Simulator::Now() >= q->m_nackTimer || q->m_lastNACK != expected){
 +			m_limerNacks++; // LIMER telemetry: NACK generated
++			uint32_t nic_idx = GetNicIdxOfRxQp(q);
++			if (nic_idx < m_limerNacksByPort.size())
++				m_limerNacksByPort[nic_idx]++;
  			q->m_nackTimer = Simulator::Now() + MicroSeconds(m_nack_interval);
  			q->m_lastNACK = expected;
  			if (m_backto0){
-@@ -754,6 +757,7 @@ void RdmaHw::ChangeRate(Ptr<RdmaQueuePair> qp, DataRate new_rate){
+@@ -624,17 +835,92 @@ uint16_t RdmaHw::EtherToPpp (uint16_t proto){
+ }
+ 
+ void RdmaHw::RecoverQueue(Ptr<RdmaQueuePair> qp){
++	if (qp == NULL || qp->IsLimerTerminal())
++		return;
++	qp->snd_nxt = qp->snd_una;
++	qp->m_nextAvail = Simulator::Now();
++}
++
++void RdmaHw::CancelRto(Ptr<RdmaQueuePair> qp){
++	if (qp == NULL)
++		return;
++	if (!qp->m_rtoEvent.IsExpired())
++		Simulator::Cancel(qp->m_rtoEvent);
++	++qp->m_rtoGeneration;
++}
++
++void RdmaHw::ArmRto(Ptr<RdmaQueuePair> qp, bool force){
++	if (qp == NULL || qp->IsLimerTerminal())
++		return;
++	if (!m_limerRecoveryTransportEnabled &&
++		qp->GetLimerTrafficClass() != LIMER_RDMA_TRAFFIC_BACKGROUND)
++		return;
++	if (!force && qp->snd_nxt <= qp->snd_una)
++		return;
++	if (!qp->m_rtoEvent.IsExpired())
++		return;
++	uint64_t generation = ++qp->m_rtoGeneration;
++	qp->m_rtoEvent = Simulator::Schedule(MicroSeconds(qp->m_rtoUs),
++		&RdmaHw::RtoExpired, this, qp, generation);
++}
++
++void RdmaHw::RecordWc(Ptr<RdmaQueuePair> qp, uint32_t status){
++	if (qp == NULL)
++		return;
++	qp->m_lastWcStatus = status;
++	qp->m_lastWcTimestampNs = Simulator::Now().GetNanoSeconds();
++	EmitLimerEvent(LIMER_RDMA_EVENT_WC, qp, status);
++}
++
++void RdmaHw::RtoExpired(Ptr<RdmaQueuePair> qp, uint64_t generation){
++	if (qp == NULL || qp->IsLimerTerminal() ||
++		generation != qp->m_rtoGeneration)
++		return;
++	if (!m_limerRecoveryTransportEnabled &&
++		qp->GetLimerTrafficClass() != LIMER_RDMA_TRAFFIC_BACKGROUND)
++		return;
++
++	if (qp->m_retryCount >= qp->m_retryLimit){
++		++qp->m_rtoGeneration;
++		qp->m_limerState = LIMER_RDMA_QP_ERROR;
++		RecordWc(qp, LIMER_RDMA_WC_RETRY_EXC_ERR);
++		// Remove the inert/error QP from its physical egress group while
++		// preserving it in m_qpMap for WC/collective inspection.
++		RedistributeQp();
++		return;
++	}
++
++	++qp->m_retryCount;
+ 	qp->snd_nxt = qp->snd_una;
++	qp->m_nextAvail = Simulator::Now();
++	EmitLimerEvent(LIMER_RDMA_EVENT_RTO_RETRY, qp, qp->m_retryCount);
++
++	// Arm before kicking the NIC: a physically dead device returns without a
++	// PktSent callback, but retry exhaustion must still be observable.
++	uint64_t nextGeneration = ++qp->m_rtoGeneration;
++	qp->m_rtoEvent = Simulator::Schedule(MicroSeconds(qp->m_rtoUs),
++		&RdmaHw::RtoExpired, this, qp, nextGeneration);
++	if (IsUsableNic(qp->m_activeNicIdx))
++		m_nic[qp->m_activeNicIdx].dev->TriggerTransmit();
+ }
+ 
+ void RdmaHw::QpComplete(Ptr<RdmaQueuePair> qp){
++	if (qp == NULL || qp->IsLimerTerminal())
++		return;
+ 	NS_ASSERT(!m_qpCompleteCallback.IsNull());
++	CancelRto(qp);
++	qp->m_limerState = LIMER_RDMA_QP_COMPLETED;
++	RecordWc(qp, LIMER_RDMA_WC_SUCCESS);
+ 	if (m_cc_mode == 1){
+ 		Simulator::Cancel(qp->mlx.m_eventUpdateAlpha);
+ 		Simulator::Cancel(qp->mlx.m_eventDecreaseRate);
+ 		Simulator::Cancel(qp->mlx.m_rpTimer);
+ 	}
+ 
++	// Sender completion is a successful ACKed WC, never mere serialization.
++	// It must precede m_qpCompleteCallback: entry's qp_finish erases the source
++	// port/tag lookup consumed by send_finish.
++	SendComplete(qp);
+ 	// This callback will log info
+ 	// It may also delete the rxQp on the receiver
+ 	m_qpCompleteCallback(qp);
+@@ -646,7 +932,98 @@ void RdmaHw::QpComplete(Ptr<RdmaQueuePair> qp){
+ }
+ 
+ void RdmaHw::SetLinkDown(Ptr<QbbNetDevice> dev){
+-	printf("RdmaHw: node:%u a link down\n", m_node->GetId());
++	uint32_t nicIdx = FindNicIdx(dev);
++	printf("RdmaHw: node:%u nic:%u a link down\n", m_node->GetId(), nicIdx);
++	Ptr<RdmaQueuePair> noQp;
++	EmitLimerEvent(LIMER_RDMA_EVENT_LINK_DOWN, noQp, nicIdx);
++}
++
++bool RdmaHw::ActivateBackup(Ptr<RdmaQueuePair> qp, uint32_t unavailableNic){
++	if (qp == NULL || qp->IsLimerTerminal())
++		return false;
++	if (!m_limerRecoveryTransportEnabled)
++		return false;
++	CancelRto(qp);
++	// Outstanding primary WRs are explicitly flushed before activating the
++	// pre-established standby binding.
++	RecordWc(qp, LIMER_RDMA_WC_WR_FLUSH_ERR);
++	bool canSwitch = qp->m_limerState == LIMER_RDMA_QP_ACTIVE_PRIMARY &&
++		qp->m_backupReady && qp->m_backupNicIdx != unavailableNic &&
++		IsUsableNic(qp->m_backupNicIdx);
++	if (!canSwitch){
++		qp->m_limerState = LIMER_RDMA_QP_ERROR;
++		EmitLimerEvent(LIMER_RDMA_EVENT_FAILOVER_UNAVAILABLE, qp, unavailableNic);
++		return false;
++	}
++
++	qp->m_activeNicIdx = qp->m_backupNicIdx;
++	qp->m_limerState = LIMER_RDMA_QP_ACTIVE_BACKUP;
++	++qp->m_epoch;
++	qp->m_failoverTimestampNs = Simulator::Now().GetNanoSeconds();
++	qp->m_backupFirstTxTimestampNs = 0;
++	qp->m_backupFirstAckTimestampNs = 0;
++	qp->m_retryCount = 0;
++	qp->snd_nxt = qp->snd_una;
++	qp->m_nextAvail = Simulator::Now();
++	InitializeQpRateForNic(qp, qp->m_activeNicIdx);
++	EmitLimerEvent(LIMER_RDMA_EVENT_FAILOVER, qp, qp->m_activeNicIdx);
++	// Covers the case where the advertised standby is also physically dead
++	// and therefore never reaches PktSent.
++	ArmRto(qp, true);
++	return true;
++}
++
++uint32_t RdmaHw::FailoverQpsFromNic(uint32_t failedPort){
++	uint32_t switched = 0;
++	for (auto &entry : m_qpMap){
++		Ptr<RdmaQueuePair> qp = entry.second;
++		if (qp != NULL && !qp->IsLimerTerminal() &&
++			qp->m_activeNicIdx == failedPort && ActivateBackup(qp, failedPort))
++			++switched;
++	}
++	// The alarm coordinator calls FailoverUnavailableQps() after FIB repair,
++	// then RedistributeQp() once, making the multi-host transition atomic at
++	// one simulation timestamp.
++	return switched;
++}
++
++uint32_t RdmaHw::FailoverUnavailableQps(){
++	uint32_t switched = 0;
++	for (auto &entry : m_qpMap){
++		Ptr<RdmaQueuePair> qp = entry.second;
++		if (qp == NULL || qp->IsLimerTerminal())
++			continue;
++		NS_ASSERT_MSG(m_gpus_per_server > 0, "GPUsPerServer must be non-zero");
++		if (qp->m_src / m_gpus_per_server == qp->m_dest / m_gpus_per_server)
++			continue;
++
++		auto route = m_rtTable.find(qp->dip.Get());
++		bool activeRoutable = false;
++		bool backupRoutable = false;
++		if (route != m_rtTable.end()){
++			for (uint32_t i = 0; i < route->second.size(); ++i){
++				int candidate = route->second[i];
++				if (candidate >= 0 && static_cast<uint32_t>(candidate) == qp->m_activeNicIdx)
++					activeRoutable = true;
++				if (candidate >= 0 && static_cast<uint32_t>(candidate) == qp->m_backupNicIdx)
++					backupRoutable = true;
++			}
++		}
++		if (activeRoutable)
++			continue;
++
++		uint32_t oldNic = qp->m_activeNicIdx;
++		if (!backupRoutable){
++			CancelRto(qp);
++			RecordWc(qp, LIMER_RDMA_WC_WR_FLUSH_ERR);
++			qp->m_limerState = LIMER_RDMA_QP_ERROR;
++			EmitLimerEvent(LIMER_RDMA_EVENT_FAILOVER_UNAVAILABLE, qp, oldNic);
++			continue;
++		}
++		if (ActivateBackup(qp, oldNic))
++			++switched;
++	}
++	return switched;
+ }
+ 
+ void RdmaHw::AddTableEntry(Ipv4Address &dstAddr, uint32_t intf_idx, bool is_nvswitch){
+@@ -671,11 +1048,23 @@ void RdmaHw::RedistributeQp(){
+ 		m_nic[i].qpGrp->Clear();
+ 	}
+ 
+-	// redistribute qp
++	// First rebuild all groups.  Terminal QPs remain queryable in m_qpMap for
++	// WC consumers but can no longer be selected by an egress scheduler.
+ 	for (auto &it : m_qpMap){
+ 		Ptr<RdmaQueuePair> qp = it.second;
++		if (qp == NULL || qp->IsLimerTerminal())
++			continue;
+ 		uint32_t nic_idx = GetNicIdxOfQp(qp);
++		NS_ASSERT_MSG(IsUsableNic(nic_idx), "Active QP binding is not usable");
+ 		m_nic[nic_idx].qpGrp->AddQp(qp);
++	}
++	// Notify only after every group is complete, so immediate dequeues see a
++	// consistent binding set.
++	for (auto &it : m_qpMap){
++		Ptr<RdmaQueuePair> qp = it.second;
++		if (qp == NULL || qp->IsLimerTerminal())
++			continue;
++		uint32_t nic_idx = GetNicIdxOfQp(qp);
+ 		// Notify Nic
+ 		m_nic[nic_idx].dev->ReassignedQp(qp);
+ 	}
+@@ -723,8 +1112,23 @@ Ptr<Packet> RdmaHw::GetNxtPacket(Ptr<RdmaQueuePair> qp){
+ }
+ 
+ void RdmaHw::PktSent(Ptr<RdmaQueuePair> qp, Ptr<Packet> pkt, Time interframeGap){
++	if (qp == NULL || qp->IsLimerTerminal())
++		return;
+ 	qp->lastPktSize = pkt->GetSize();
++	uint64_t now = Simulator::Now().GetNanoSeconds();
++	if (!qp->m_hasFirstTxTimestamp){
++		qp->m_hasFirstTxTimestamp = true;
++		qp->m_firstTxTimestampNs = now;
++	}
++	qp->m_lastTxTimestampNs = now;
++	if (qp->m_limerState == LIMER_RDMA_QP_ACTIVE_BACKUP &&
++		qp->m_backupFirstTxTimestampNs == 0){
++		qp->m_backupFirstTxTimestampNs = now;
++		EmitLimerEvent(LIMER_RDMA_EVENT_BACKUP_FIRST_TX, qp,
++			qp->m_activeNicIdx);
++	}
+ 	UpdateNextAvail(qp, interframeGap, pkt->GetSize());
++	ArmRto(qp, false);
+ }
+ 
+ void RdmaHw::UpdateNextAvail(Ptr<RdmaQueuePair> qp, Time interframeGap, uint32_t pkt_size){
+@@ -754,6 +1158,7 @@ void RdmaHw::ChangeRate(Ptr<RdmaQueuePair> qp, DataRate new_rate){
  */
  void RdmaHw::UpdateTxBytes(uint32_t port_id, uint64_t bytes){
  	tx_bytes[port_id] += bytes;
@@ -27,11 +2444,59 @@ index e624698..bbda42d 100644
  }
  /**
   * output format:
+@@ -839,7 +1244,23 @@ void RdmaHw::cnp_received_mlx(Ptr<RdmaQueuePair> q){
+ 		// schedule rate decrease
+ 		ScheduleDecreaseRateMlx(q, 1); // add 1 ns to make sure rate decrease is after alpha update
+ 		// set rate on first CNP
++		const uint64_t old_rate = q->m_rate.GetBitRate();
+ 		q->mlx.m_targetRate = q->m_rate = m_rateOnFirstCNP * q->m_rate;
++		const uint64_t new_rate = q->m_rate.GetBitRate();
++		if (new_rate < old_rate && HasLimerCongestionSignalSink()) {
++			LimerCongestionSignalEvent event;
++			event.timestamp_ns = Simulator::Now().GetNanoSeconds();
++			event.event_type = LIMER_SIGNAL_QP_RATE_DECREASE;
++			event.node_id = m_node->GetId();
++			event.node_type = m_node->GetNodeType();
++			event.port_id = m_nic[GetNicIdxOfQp(q)].dev->GetIfIndex();
++			FillSignalFromQp(q, &event);
++			event.has_rate = true;
++			event.old_rate_bps = old_rate;
++			event.new_rate_bps = new_rate;
++			event.cc_mode = m_cc_mode;
++			EmitLimerCongestionSignal(event);
++		}
+ 		q->mlx.m_first_cnp = false;
+ 	}
+ }
+@@ -857,7 +1278,23 @@ void RdmaHw::CheckRateDecreaseMlx(Ptr<RdmaQueuePair> q){
+ 		}
+ 		if (clamp)
+ 			q->mlx.m_targetRate = q->m_rate;
++		const uint64_t old_rate = q->m_rate.GetBitRate();
+ 		q->m_rate = std::max(m_minRate, q->m_rate * (1 - q->mlx.m_alpha / 2));
++		const uint64_t new_rate = q->m_rate.GetBitRate();
++		if (new_rate < old_rate && HasLimerCongestionSignalSink()) {
++			LimerCongestionSignalEvent event;
++			event.timestamp_ns = Simulator::Now().GetNanoSeconds();
++			event.event_type = LIMER_SIGNAL_QP_RATE_DECREASE;
++			event.node_id = m_node->GetId();
++			event.node_type = m_node->GetNodeType();
++			event.port_id = m_nic[GetNicIdxOfQp(q)].dev->GetIfIndex();
++			FillSignalFromQp(q, &event);
++			event.has_rate = true;
++			event.old_rate_bps = old_rate;
++			event.new_rate_bps = new_rate;
++			event.cc_mode = m_cc_mode;
++			EmitLimerCongestionSignal(event);
++		}
+ 		// reset rate increase related things
+ 		q->mlx.m_rpTimeStage = 0;
+ 		q->mlx.m_decrease_cnp_arrived = false;
 diff --git a/simulation/src/point-to-point/model/rdma-hw.h b/simulation/src/point-to-point/model/rdma-hw.h
-index cf4512e..aa7c58b 100644
+index cf4512e..d7163c6 100644
 --- a/simulation/src/point-to-point/model/rdma-hw.h
 +++ b/simulation/src/point-to-point/model/rdma-hw.h
-@@ -67,6 +67,15 @@ public:
+@@ -67,6 +67,32 @@ public:
  	void PrintQPRate(FILE* rate_output);
  	void PrintQPCnpNumber(FILE* cnp_output);
  
@@ -40,34 +2505,510 @@ index cf4512e..aa7c58b 100644
 +	// NACK-trigger site in ReceiverCheckSeq; m_limerTxPkts/m_limerRxPkts
 +	// incremented alongside the existing tx_bytes/rx byte-tracking calls.
 +	uint64_t m_limerNacks = 0;
++	std::vector<uint64_t> m_limerNacksByPort;
 +	uint64_t m_limerTxPkts = 0;
 +	uint64_t m_limerRxPkts = 0;
 +	uint64_t m_limerRxBytes = 0;
 +
++	// event_type, qp, timestamp_ns, detail.  detail is event-specific: a NIC
++	// index for binding/failover events, an ACK sequence for ACK_PROGRESS, a
++	// retry count for RTO_RETRY, and LimerRdmaWcStatus for WC.
++	typedef Callback<void, uint32_t, Ptr<RdmaQueuePair>, uint64_t, uint64_t> LimerEventCallback;
++	LimerEventCallback m_limerEventCallback;
++	uint64_t m_limerRtoUs;
++	uint32_t m_limerRetryLimit;
++	// The baseline transport must preserve SimAI's original ECMP behaviour and
++	// must not synthesize a short RDMA timeout.  Recovery experiments opt in to
++	// the additional standby/RTO machinery explicitly; real background QPs use
++	// the RTO independently so their finite ACK-qualified lifecycle is visible.
++	bool m_limerRecoveryTransportEnabled;
++	void SetLimerEventCallback(LimerEventCallback cb);
++	uint32_t FailoverQpsFromNic(uint32_t failedPort);
++	uint32_t FailoverUnavailableQps();
++
  	// nvls
  	void enable_nvls();
  	void disable_nvls();
+@@ -77,7 +103,7 @@ public:
+ 	static uint64_t GetQpKey(uint32_t dip, uint16_t sport, uint16_t pg); // get the lookup key for m_qpMap
+ 	Ptr<RdmaQueuePair> GetQp(uint32_t dip, uint16_t sport, uint16_t pg); // get the qp
+ 	uint32_t GetNicIdxOfQp(Ptr<RdmaQueuePair> qp); // get the NIC index of the qp
+-	void AddQueuePair(uint32_t src, uint32_t dest, uint64_t tag, uint64_t size, uint16_t pg, Ipv4Address _sip, Ipv4Address _dip, uint16_t _sport, uint16_t _dport, uint32_t win, uint64_t baseRtt, Callback<void> notifyAppFinish, Callback<void> notifyAppSent); // add a new qp (new send)
++	void AddQueuePair(uint32_t src, uint32_t dest, uint64_t tag, uint64_t size, uint16_t pg, Ipv4Address _sip, Ipv4Address _dip, uint16_t _sport, uint16_t _dport, uint32_t win, uint64_t baseRtt, Callback<void> notifyAppFinish, Callback<void> notifyAppSent, uint32_t limerTrafficClass = LIMER_RDMA_TRAFFIC_TRAINING); // add a new qp (new send)
+ 	void DeleteQueuePair(Ptr<RdmaQueuePair> qp);
+ 
+ 	Ptr<RdmaRxQueuePair> GetRxQp(uint32_t sip, uint32_t dip, uint16_t sport, uint16_t dport, uint16_t pg, bool create); // get a rxQp
+@@ -102,6 +128,15 @@ public:
+ 	void RecoverQueue(Ptr<RdmaQueuePair> qp);
+ 	void QpComplete(Ptr<RdmaQueuePair> qp);
+ 	void SetLinkDown(Ptr<QbbNetDevice> dev);
++	void EmitLimerEvent(uint32_t eventType, Ptr<RdmaQueuePair> qp, uint64_t detail);
++	void RecordWc(Ptr<RdmaQueuePair> qp, uint32_t status);
++	void ArmRto(Ptr<RdmaQueuePair> qp, bool force);
++	void CancelRto(Ptr<RdmaQueuePair> qp);
++	void RtoExpired(Ptr<RdmaQueuePair> qp, uint64_t generation);
++	void InitializeQpRateForNic(Ptr<RdmaQueuePair> qp, uint32_t nicIdx);
++	bool IsUsableNic(uint32_t nicIdx) const;
++	uint32_t FindNicIdx(Ptr<QbbNetDevice> dev) const;
++	bool ActivateBackup(Ptr<RdmaQueuePair> qp, uint32_t unavailableNic);
+ 
+     int SendPacketComplete(Ptr<Packet> p, CustomHeader &ch);
+     void SendComplete(Ptr<RdmaQueuePair> qp);
+diff --git a/simulation/src/point-to-point/model/rdma-queue-pair.cc b/simulation/src/point-to-point/model/rdma-queue-pair.cc
+index dfb99a1..e806f17 100644
+--- a/simulation/src/point-to-point/model/rdma-queue-pair.cc
++++ b/simulation/src/point-to-point/model/rdma-queue-pair.cc
+@@ -6,6 +6,8 @@
+ #include <ns3/simulator.h>
+ #include "ns3/ppp-header.h"
+ #include "rdma-queue-pair.h"
++#include <algorithm>
++#include <limits>
+ 
+ namespace ns3 {
+ 
+@@ -40,6 +42,27 @@ RdmaQueuePair::RdmaQueuePair(uint16_t pg, Ipv4Address _sip, Ipv4Address _dip, ui
+ 	m_var_win = false;
+ 	m_rate = 0;
+ 	m_nextAvail = Time(0);
++	m_primaryNicIdx = std::numeric_limits<uint32_t>::max();
++	m_backupNicIdx = std::numeric_limits<uint32_t>::max();
++	m_activeNicIdx = std::numeric_limits<uint32_t>::max();
++	m_backupReady = false;
++	m_backupReadyTimestampNs = 0;
++	m_epoch = 0;
++	m_limerState = LIMER_RDMA_QP_ACTIVE_PRIMARY;
++	m_limerTrafficClass = LIMER_RDMA_TRAFFIC_TRAINING;
++	m_rtoGeneration = 0;
++	m_rtoUs = 100;
++	m_retryCount = 0;
++	m_retryLimit = 7;
++	m_lastWcStatus = LIMER_RDMA_WC_NONE;
++	m_lastWcTimestampNs = 0;
++	m_hasFirstTxTimestamp = false;
++	m_firstTxTimestampNs = 0;
++	m_lastTxTimestampNs = 0;
++	m_firstAckProgressTimestampNs = 0;
++	m_failoverTimestampNs = 0;
++	m_backupFirstTxTimestampNs = 0;
++	m_backupFirstAckTimestampNs = 0;
+ 	mlx.m_alpha = 1;
+ 	mlx.m_alpha_cnp_arrived = false;
+ 	mlx.m_first_cnp = true;
+@@ -129,8 +152,21 @@ void RdmaQueuePair::SetAppSentCallback(Callback<void> notifyAppSent){
+ 	m_notifyAppSent = notifyAppSent;
+ }
+ 
++void RdmaQueuePair::SetLimerTrafficClass(uint32_t trafficClass){
++	NS_ASSERT_MSG(trafficClass == LIMER_RDMA_TRAFFIC_TRAINING ||
++		trafficClass == LIMER_RDMA_TRAFFIC_BACKGROUND,
++		"invalid LIMER RDMA traffic class");
++	m_limerTrafficClass = trafficClass;
++}
++
++uint32_t RdmaQueuePair::GetLimerTrafficClass() const{
++	return m_limerTrafficClass;
++}
++
+ 
+ uint64_t RdmaQueuePair::GetBytesLeft(){
++	if (IsLimerTerminal())
++		return 0;
+ 	return m_size >= snd_nxt ? m_size - snd_nxt : 0;
+ }
+ 
+@@ -196,6 +232,11 @@ bool RdmaQueuePair::IsFinished(){
+ 	return snd_una >= m_size;
+ }
+ 
++bool RdmaQueuePair::IsLimerTerminal(){
++	return m_limerState == LIMER_RDMA_QP_ERROR ||
++		m_limerState == LIMER_RDMA_QP_COMPLETED;
++}
++
+ /*********************
+  * RdmaRxQueuePair
+  ********************/
+@@ -261,6 +302,17 @@ void RdmaQueuePairGroup::AddQp(Ptr<RdmaQueuePair> qp){
+ 	m_qps.push_back(qp);
+ }
+ 
++bool RdmaQueuePairGroup::RemoveQp(Ptr<RdmaQueuePair> qp,
++		uint32_t *removedIndex){
++	auto it = std::find(m_qps.begin(), m_qps.end(), qp);
++	if (it == m_qps.end())
++		return false;
++	if (removedIndex != nullptr)
++		*removedIndex = static_cast<uint32_t>(it - m_qps.begin());
++	m_qps.erase(it);
++	return true;
++}
++
+ #if 0
+ void RdmaQueuePairGroup::AddRxQp(Ptr<RdmaRxQueuePair> rxQp){
+ 	m_rxQps.push_back(rxQp);
+diff --git a/simulation/src/point-to-point/model/rdma-queue-pair.h b/simulation/src/point-to-point/model/rdma-queue-pair.h
+index b2876bd..250fa9e 100644
+--- a/simulation/src/point-to-point/model/rdma-queue-pair.h
++++ b/simulation/src/point-to-point/model/rdma-queue-pair.h
+@@ -12,6 +12,52 @@
+ 
+ namespace ns3 {
+ 
++// Transport state exposed to LIMER.  These values are deliberately stable
++// integers so an out-of-module telemetry callback does not need to depend on
++// C++ enum layout or strings.
++enum LimerRdmaQpState {
++	LIMER_RDMA_QP_ACTIVE_PRIMARY = 0,
++	LIMER_RDMA_QP_ACTIVE_BACKUP = 1,
++	LIMER_RDMA_QP_ERROR = 2,
++	LIMER_RDMA_QP_COMPLETED = 3
++};
++
++enum LimerRdmaWcStatus {
++	LIMER_RDMA_WC_NONE = 0,
++	LIMER_RDMA_WC_SUCCESS = 1,
++	LIMER_RDMA_WC_WR_FLUSH_ERR = 2,
++	LIMER_RDMA_WC_RETRY_EXC_ERR = 3
++};
++
++enum LimerRdmaEventType {
++	LIMER_RDMA_EVENT_QP_CREATED = 1,
++	LIMER_RDMA_EVENT_BACKUP_READY = 2,
++	LIMER_RDMA_EVENT_QP_PREESTABLISHED = LIMER_RDMA_EVENT_BACKUP_READY,
++	LIMER_RDMA_EVENT_ACK_PROGRESS = 3,
++	LIMER_RDMA_EVENT_RTO_RETRY = 4,
++	LIMER_RDMA_EVENT_WC = 5,
++	LIMER_RDMA_EVENT_FAILOVER = 6,
++	LIMER_RDMA_EVENT_LINK_DOWN = 7,
++	LIMER_RDMA_EVENT_FAILOVER_UNAVAILABLE = 8,
++	LIMER_RDMA_EVENT_BACKUP_FIRST_TX = 9
++};
++
++// Keep application ownership explicit on the QP.  Background traffic is a
++// real RDMA transfer, but it must never be mistaken for an Astra collective
++// flow by the ns-3 frontend completion callbacks.
++enum LimerRdmaTrafficClass {
++	LIMER_RDMA_TRAFFIC_TRAINING = 0,
++	LIMER_RDMA_TRAFFIC_BACKGROUND = 1
++};
++
++// Astra training QPs allocate only in [LIMER_TRAINING_SPORT_MIN,
++// LIMER_BACKGROUND_SPORT_MIN).  The BackgroundFlowExecutor accepts only the
++// reserved upper interval, so its independently scheduled QPs cannot alias a
++// collective QP key.
++static const uint16_t LIMER_TRAINING_SPORT_MIN = 10000;
++static const uint16_t LIMER_BACKGROUND_SPORT_MIN = 49152;
++static const uint16_t LIMER_BACKGROUND_SPORT_MAX = 65535;
++
+ class RdmaQueuePair : public Object {
+ public:
+ 	Time startTime;
+@@ -31,6 +77,36 @@ public:
+ 	uint32_t lastPktSize;
+ 	Callback<void> m_notifyAppFinish;
+ 	Callback<void> m_notifyAppSent;
++
++	// LIMER transport/failover state.  A backup binding is established when
++	// the QP is created; switching therefore changes only m_activeNicIdx and
++	// replays the cumulative-ACK gap [snd_una, snd_nxt).
++	uint32_t m_primaryNicIdx;
++	uint32_t m_backupNicIdx;
++	uint32_t m_activeNicIdx;
++	bool m_backupReady;
++	uint64_t m_backupReadyTimestampNs;
++	uint64_t m_epoch;
++	uint32_t m_limerState;
++	uint32_t m_limerTrafficClass;
++
++	EventId m_rtoEvent;
++	uint64_t m_rtoGeneration;
++	uint64_t m_rtoUs;
++	uint32_t m_retryCount;
++	uint32_t m_retryLimit;
++
++	uint32_t m_lastWcStatus;
++	uint64_t m_lastWcTimestampNs;
++	// First Qbb egress transmission attempt.  The separate validity bit keeps
++	// timestamp zero representable for applications scheduled at t=0.
++	bool m_hasFirstTxTimestamp;
++	uint64_t m_firstTxTimestampNs;
++	uint64_t m_lastTxTimestampNs;
++	uint64_t m_firstAckProgressTimestampNs;
++	uint64_t m_failoverTimestampNs;
++	uint64_t m_backupFirstTxTimestampNs;
++	uint64_t m_backupFirstAckTimestampNs;
+ 	/******************************
+ 	 * runtime states
+ 	 *****************************/
+@@ -93,6 +169,8 @@ public:
+ 	void SetVarWin(bool v);
+ 	void SetAppNotifyCallback(Callback<void> notifyAppFinish);
+ 	void SetAppSentCallback(Callback<void> notifyAppSent);
++	void SetLimerTrafficClass(uint32_t trafficClass);
++	uint32_t GetLimerTrafficClass() const;
+ 
+ 	uint64_t GetBytesLeft();
+ 	uint64_t GetInitialSize();
+@@ -106,6 +184,7 @@ public:
+ 	bool IsWinBound();
+ 	uint64_t GetWin(); // window size calculated from m_rate
+ 	bool IsFinished();
++	bool IsLimerTerminal();
+ 	uint64_t HpGetCurWin(); // window size calculated from hp.m_curRate, used by HPCC
+ };
+ 
+@@ -145,6 +224,7 @@ public:
+ 	Ptr<RdmaQueuePair> Get(uint32_t idx);
+ 	Ptr<RdmaQueuePair> operator[](uint32_t idx);
+ 	void AddQp(Ptr<RdmaQueuePair> qp);
++	bool RemoveQp(Ptr<RdmaQueuePair> qp, uint32_t *removedIndex = nullptr);
+ 	//void AddRxQp(Ptr<RdmaRxQueuePair> rxQp);
+ 	void Clear(void);
+ };
 diff --git a/simulation/src/point-to-point/model/switch-node.cc b/simulation/src/point-to-point/model/switch-node.cc
-index 263a768..76bfe4f 100644
+index 263a768..1b30ef1 100644
 --- a/simulation/src/point-to-point/model/switch-node.cc
 +++ b/simulation/src/point-to-point/model/switch-node.cc
-@@ -94,6 +94,7 @@ void SwitchNode::CheckAndSendPfc(uint32_t inDev, uint32_t qIndex){
+@@ -8,13 +8,49 @@
+ #include "ns3/double.h"
+ #include "switch-node.h"
+ #include "qbb-net-device.h"
++#include "limer-congestion-signal.h"
++#include "rdma-queue-pair.h"
+ #include "ppp-header.h"
+ #include "ns3/int-header.h"
+ #include "ns3/simulator.h"
+ #include <cmath>
++#include <limits>
+ 
+ namespace ns3 {
+ 
++namespace {
++void FillBackgroundSignalFlow(const CustomHeader& ch,
++		LimerCongestionSignalEvent* event) {
++	uint16_t sport = 0, dport = 0, pg = 0;
++	if (ch.l3Prot == 0x11) {
++		sport = ch.udp.sport; dport = ch.udp.dport; pg = ch.udp.pg;
++	} else if (ch.l3Prot == 0xFC || ch.l3Prot == 0xFD) {
++		sport = ch.ack.sport; dport = ch.ack.dport; pg = ch.ack.pg;
++	} else {
++		return;
++	}
++	event->packet_sip = ch.sip;
++	event->has_packet_tuple = true;
++	event->packet_dip = ch.dip;
++	event->packet_sport = sport;
++	event->packet_dport = dport;
++	LimerRouteChoiceEvent route;
++	if (LimerClassifyBackgroundRoute(
++			ch.l3Prot, ch.sip, ch.dip, sport, dport, pg, &route)) {
++		event->has_flow = true;
++		event->flow_src = route.flow_src;
++		event->flow_dst = route.flow_dst;
++		event->flow_sport = route.flow_sport;
++		event->flow_dport = route.flow_dport;
++	}
++}
++}  // namespace
++
++static_assert(LIMER_ROUTE_BACKGROUND_SPORT_MIN == LIMER_BACKGROUND_SPORT_MIN,
++	"route recorder and RDMA background source-port bounds differ");
++static_assert(LIMER_ROUTE_BACKGROUND_SPORT_MAX == LIMER_BACKGROUND_SPORT_MAX,
++	"route recorder and RDMA background source-port bounds differ");
++
+ TypeId SwitchNode::GetTypeId (void)
+ {
+   static TypeId tid = TypeId ("ns3::SwitchNode")
+@@ -48,10 +84,6 @@ SwitchNode::SwitchNode(){
+ 	m_ecmpSeed = m_id;
+ 	m_node_type = 1;
+ 	m_mmu = CreateObject<SwitchMmu>();
+-	for (uint32_t i = 0; i < pCnt; i++)
+-		for (uint32_t j = 0; j < pCnt; j++)
+-			for (uint32_t k = 0; k < qCnt; k++)
+-				m_bytes[i][j][k] = 0;
+ 	for (uint32_t i = 0; i < pCnt; i++)
+ 		m_txBytes[i] = 0;
+ 	for (uint32_t i = 0; i < pCnt; i++)
+@@ -60,6 +92,39 @@ SwitchNode::SwitchNode(){
+ 		m_u[i] = 0;
+ }
+ 
++uint64_t SwitchNode::QueueByteKey(uint32_t inDev, uint32_t outDev,
++		uint32_t qIndex){
++	NS_ASSERT_MSG(inDev < pCnt, "Switch ingress port exceeds accounting bound");
++	NS_ASSERT_MSG(outDev < pCnt, "Switch egress port exceeds accounting bound");
++	NS_ASSERT_MSG(qIndex < qCnt, "Switch queue exceeds accounting bound");
++	return (static_cast<uint64_t>(inDev) * pCnt + outDev) * qCnt + qIndex;
++}
++
++void SwitchNode::AddQueuedBytes(uint32_t inDev, uint32_t outDev,
++		uint32_t qIndex, uint32_t bytes){
++	uint32_t &queued = m_bytes[QueueByteKey(inDev, outDev, qIndex)];
++	NS_ASSERT_MSG(queued <= std::numeric_limits<uint32_t>::max() - bytes,
++		"Switch queued-byte accounting overflow");
++	queued += bytes;
++}
++
++void SwitchNode::RemoveQueuedBytes(uint32_t inDev, uint32_t outDev,
++		uint32_t qIndex, uint32_t bytes, const char* underflowMessage){
++	uint64_t key = QueueByteKey(inDev, outDev, qIndex);
++	auto it = m_bytes.find(key);
++	NS_ASSERT_MSG(it != m_bytes.end() && it->second >= bytes,
++		underflowMessage);
++	it->second -= bytes;
++	if (it->second == 0)
++		m_bytes.erase(it);
++}
++
++bool SwitchNode::RememberLimerRouteChoice(
++		const LimerRouteChoiceEvent& event){
++	std::lock_guard<std::mutex> guard(m_limerRouteChoiceMutex);
++	return EmitLimerRouteChoiceOnce(&m_limerRouteChoices, event);
++}
++
+ int SwitchNode::GetOutDev(Ptr<const Packet> p, CustomHeader &ch){
+ 	// look up entries
+ 	auto entry = m_rtTable.find(ch.dip);
+@@ -75,25 +140,87 @@ int SwitchNode::GetOutDev(Ptr<const Packet> p, CustomHeader &ch){
+ 	union {
+ 		uint8_t u8[4+4+2+2];
+ 		uint32_t u32[3];
+-	} buf;
++	} buf = {};
+ 	buf.u32[0] = ch.sip;
+ 	buf.u32[1] = ch.dip;
++	uint16_t packet_sport = 0;
++	uint16_t packet_dport = 0;
++	uint16_t pg = 0;
+ 	if (ch.l3Prot == 0x6)
+ 		buf.u32[2] = ch.tcp.sport | ((uint32_t)ch.tcp.dport << 16);
+-	else if (ch.l3Prot == 0x11)
++	else if (ch.l3Prot == 0x11){
+ 		buf.u32[2] = ch.udp.sport | ((uint32_t)ch.udp.dport << 16);
+-	else if (ch.l3Prot == 0xFC || ch.l3Prot == 0xFD)
++		packet_sport = ch.udp.sport;
++		packet_dport = ch.udp.dport;
++		pg = ch.udp.pg;
++	}else if (ch.l3Prot == 0xFC || ch.l3Prot == 0xFD){
+ 		buf.u32[2] = ch.ack.sport | ((uint32_t)ch.ack.dport << 16);
++		packet_sport = ch.ack.sport;
++		packet_dport = ch.ack.dport;
++		pg = ch.ack.pg;
++	}
+ 
+-	uint32_t idx = EcmpHash(buf.u8, 12, m_ecmpSeed) % nexthops.size();
+-	return nexthops[idx];
++	const uint32_t hash = EcmpHash(buf.u8, 12, m_ecmpSeed);
++	const LimerEcmpSelection selection = LimerSelectEcmp(hash, nexthops);
++	NS_ABORT_MSG_IF(!selection.ok,
++		"Switch route has no valid ECMP candidate");
++	if (HasLimerRouteChoiceSink()) {
++		LimerRouteChoiceEvent event;
++		if (LimerClassifyBackgroundRoute(
++				ch.l3Prot, ch.sip, ch.dip, packet_sport, packet_dport,
++				pg, &event)) {
++			event.timestamp_ns = Simulator::Now().GetNanoSeconds();
++			event.node_id = GetId();
++			event.node_type = GetNodeType();
++			event.ecmp_seed = m_ecmpSeed;
++			event.ecmp_hash = hash;
++			event.candidate_count = selection.candidate_count;
++			event.bucket = selection.bucket;
++			event.egress_port = selection.egress_port;
++			RememberLimerRouteChoice(event);
++		}
++	}
++	return static_cast<int>(selection.egress_port);
+ }
+ 
+-void SwitchNode::CheckAndSendPfc(uint32_t inDev, uint32_t qIndex){
++void SwitchNode::RecordPfcSend(bool pause, uint32_t inDev, bool hasOutDev,
++		uint32_t outDev, uint32_t qIndex, const CustomHeader* trigger){
++	if (!HasLimerCongestionSignalSink()) return;
++	LimerCongestionSignalEvent event;
++	event.timestamp_ns = Simulator::Now().GetNanoSeconds();
++	event.event_type = pause ? LIMER_SIGNAL_PFC_PAUSE_SEND
++		: LIMER_SIGNAL_PFC_RESUME_SEND;
++	event.node_id = GetId();
++	event.node_type = GetNodeType();
++	event.port_id = inDev;
++	event.has_trigger_out_port = hasOutDev;
++	event.trigger_out_port = outDev;
++	event.pg = static_cast<uint16_t>(qIndex);
++	event.has_queue_state = true;
++	event.queue_bytes = m_mmu->ingress_bytes[inDev][qIndex];
++	event.has_threshold_state = true;
++	event.has_shared_state = true;
++	event.has_headroom_state = true;
++	event.shared_used_bytes = m_mmu->GetSharedUsed(inDev, qIndex);
++	event.threshold_low_bytes = m_mmu->GetPfcThreshold(inDev);
++	event.threshold_high_bytes = event.threshold_low_bytes;
++	event.headroom_bytes = m_mmu->hdrm_bytes[inDev][qIndex];
++	event.signal_before = pause ? 0 : 1;
++	event.signal_after = pause ? 1 : 0;
++	Ptr<QbbNetDevice> device = DynamicCast<QbbNetDevice>(m_devices[inDev]);
++	event.pause_time = pause ? device->GetPfcPauseTime() : 0;
++	if (trigger != nullptr) FillBackgroundSignalFlow(*trigger, &event);
++	EmitLimerCongestionSignal(event);
++}
++
++void SwitchNode::CheckAndSendPfc(uint32_t inDev, uint32_t outDev,
++		uint32_t qIndex, const CustomHeader& trigger){
+ 	Ptr<QbbNetDevice> device = DynamicCast<QbbNetDevice>(m_devices[inDev]);
  	if (m_mmu->CheckShouldPause(inDev, qIndex)){
  		device->SendPfc(qIndex, 0);
  		m_mmu->SetPause(inDev, qIndex);
 +		m_limerPfcEvents[inDev]++; // LIMER telemetry: PFC pause sent
++		RecordPfcSend(true, inDev, true, outDev, qIndex, &trigger);
  	}
  }
  void SwitchNode::CheckAndSendResume(uint32_t inDev, uint32_t qIndex){
-@@ -101,6 +102,7 @@ void SwitchNode::CheckAndSendResume(uint32_t inDev, uint32_t qIndex){
+@@ -101,13 +228,41 @@ void SwitchNode::CheckAndSendResume(uint32_t inDev, uint32_t qIndex){
  	if (m_mmu->CheckShouldResume(inDev, qIndex)){
  		device->SendPfc(qIndex, 1);
  		m_mmu->SetResume(inDev, qIndex);
 +		m_limerPfcEvents[inDev]++; // LIMER telemetry: PFC resume sent
++		RecordPfcSend(false, inDev, false, 0, qIndex, nullptr);
++	}
++}
++void SwitchNode::CheckAndSendResumeForPacket(uint32_t inDev, uint32_t outDev,
++		uint32_t qIndex, const CustomHeader& trigger){
++	Ptr<QbbNetDevice> device = DynamicCast<QbbNetDevice>(m_devices[inDev]);
++	if (m_mmu->CheckShouldResume(inDev, qIndex)){
++		device->SendPfc(qIndex, 1);
++		m_mmu->SetResume(inDev, qIndex);
++		m_limerPfcEvents[inDev]++;
++		RecordPfcSend(false, inDev, true, outDev, qIndex, &trigger);
  	}
  }
  
-@@ -127,14 +129,29 @@ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch){
+ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch){
+ 	int idx = GetOutDev(p, ch);
+ 	if (idx >= 0){
+-		NS_ASSERT_MSG(m_devices[idx]->IsLinkUp(), "The routing table look up should return link that is up");
++		// A physical fault and the corresponding online alarm are separate
++		// events.  During that interval the old FIB may still select the dead
++		// port.  That is a real data-plane drop, not a simulator invariant
++		// violation and, importantly, not an implicit fast reroute.
++		if (!m_devices[idx]->IsLinkUp()) {
++			FlowIdTag limerDownTag;
++			p->PeekPacketTag(limerDownTag);
++			uint32_t limerInDev = limerDownTag.GetFlowId();
++			if (idx < static_cast<int>(pCnt)) {
++				m_limerDropPkts[idx]++;
++				m_limerDropBytes[idx] += p->GetSize();
++			} else if (limerInDev < pCnt) {
++				m_limerDropPkts[limerInDev]++;
++				m_limerDropBytes[limerInDev] += p->GetSize();
++			}
++			return;
++		}
+ 
+ 		// determine the qIndex
+ 		uint32_t qIndex;
+@@ -127,14 +282,29 @@ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch){
  				m_mmu->UpdateIngressAdmission(inDev, qIndex, p->GetSize());
  				m_mmu->UpdateEgressAdmission(idx, qIndex, p->GetSize());
  			}else{
@@ -77,10 +3018,12 @@ index 263a768..76bfe4f 100644
 +				m_limerDropBytes[idx] += p->GetSize();
  				return; // Drop
  			}
- 			CheckAndSendPfc(inDev, qIndex);
+-			CheckAndSendPfc(inDev, qIndex);
++			CheckAndSendPfc(inDev, idx, qIndex, ch);
++			AddQueuedBytes(inDev, idx, qIndex, p->GetSize());
  		}
+-		m_bytes[inDev][idx][qIndex] += p->GetSize();
 +		m_limerRxPkts[inDev]++;
- 		m_bytes[inDev][idx][qIndex] += p->GetSize();
  		m_devices[idx]->SwitchSend(qIndex, p, ch);
  	}else
  	{
@@ -97,7 +3040,21 @@ index 263a768..76bfe4f 100644
  		return; // Drop
  	}
  }
-@@ -207,6 +224,7 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
+@@ -199,14 +369,20 @@ bool SwitchNode::SwitchReceiveFromDevice(Ptr<NetDevice> device, Ptr<Packet> pack
+ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Packet> p){
+ 	FlowIdTag t;
+ 	p->PeekPacketTag(t);
++	CustomHeader limerSignalHeader(
++		CustomHeader::L2_Header | CustomHeader::L3_Header |
++		CustomHeader::L4_Header);
++	p->PeekHeader(limerSignalHeader);
+ 	if (qIndex != 0){
+ 		uint32_t inDev = t.GetFlowId();
+ 		m_mmu->RemoveFromIngressAdmission(inDev, qIndex, p->GetSize());
+ 		m_mmu->RemoveFromEgressAdmission(ifIndex, qIndex, p->GetSize());
+-		m_bytes[inDev][ifIndex][qIndex] -= p->GetSize();
++		RemoveQueuedBytes(inDev, ifIndex, qIndex, p->GetSize(),
++			"Switch dequeue admission accounting underflow");
  		if (m_ecnEnabled){
  			bool egressCongested = m_mmu->ShouldSendCN(ifIndex, qIndex);
  			if (egressCongested){
@@ -105,7 +3062,38 @@ index 263a768..76bfe4f 100644
  				PppHeader ppp;
  				Ipv4Header h;
  				p->RemoveHeader(ppp);
-@@ -304,6 +322,7 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
+@@ -214,10 +390,29 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
+ 				h.SetEcn((Ipv4Header::EcnType)0x03);
+ 				p->AddHeader(h);
+ 				p->AddHeader(ppp);
++				if (HasLimerCongestionSignalSink()) {
++					LimerCongestionSignalEvent event;
++					event.timestamp_ns = Simulator::Now().GetNanoSeconds();
++					event.event_type = LIMER_SIGNAL_ECN_MARK;
++					event.node_id = GetId();
++					event.node_type = GetNodeType();
++					event.port_id = ifIndex;
++					event.pg = static_cast<uint16_t>(qIndex);
++					event.has_queue_state = true;
++					event.queue_bytes = m_mmu->egress_bytes[ifIndex][qIndex];
++					event.has_threshold_state = true;
++					event.threshold_low_bytes = m_mmu->kmin[ifIndex];
++					event.threshold_high_bytes = m_mmu->kmax[ifIndex];
++					event.signal_before = limerSignalHeader.GetIpv4EcnBits();
++					event.signal_after = 3;
++					FillBackgroundSignalFlow(limerSignalHeader, &event);
++					EmitLimerCongestionSignal(event);
++				}
+ 			}
+ 		}
+ 		//CheckAndSendPfc(inDev, qIndex);
+-		CheckAndSendResume(inDev, qIndex);
++		CheckAndSendResumeForPacket(
++			inDev, ifIndex, qIndex, limerSignalHeader);
+ 	}
+ 	if (1){
+ 		uint8_t* buf = p->GetBuffer();
+@@ -304,10 +499,29 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
  		}
  	}
  	m_txBytes[ifIndex] += p->GetSize();
@@ -113,22 +3101,100 @@ index 263a768..76bfe4f 100644
  	m_lastPktSize[ifIndex] = p->GetSize();
  	m_lastPktTs[ifIndex] = Simulator::Now().GetTimeStep();
  }
+ 
++void SwitchNode::SwitchNotifyDrop(uint32_t ifIndex, uint32_t qIndex, Ptr<Packet> p){
++	if (qIndex == 0)
++		return;
++	FlowIdTag t;
++	NS_ASSERT_MSG(p->PeekPacketTag(t),
++		"A queued switch packet must retain its ingress FlowIdTag until purge");
++	uint32_t inDev = t.GetFlowId();
++	m_mmu->RemoveFromIngressAdmission(inDev, qIndex, p->GetSize());
++	m_mmu->RemoveFromEgressAdmission(ifIndex, qIndex, p->GetSize());
++	RemoveQueuedBytes(inDev, ifIndex, qIndex, p->GetSize(),
++		"Switch purge admission accounting underflow");
++	// TakeDown is invoked by the public-LP fault barrier under MTP.  Keep the
++	// MMU release atomic there, but move any generated PFC/resume packet and
++	// its completion chain back to this switch's private LP.
++	Simulator::ScheduleWithContext(GetId(), TimeStep(0),
++		&SwitchNode::CheckAndSendResume, this, inDev, qIndex);
++}
++
+ int SwitchNode::logres_shift(int b, int l){
+ 	static int data[] = {0,0,1,2,2,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5};
+ 	return l - data[b];
 diff --git a/simulation/src/point-to-point/model/switch-node.h b/simulation/src/point-to-point/model/switch-node.h
-index db59fba..d778961 100644
+index db59fba..c34121e 100644
 --- a/simulation/src/point-to-point/model/switch-node.h
 +++ b/simulation/src/point-to-point/model/switch-node.h
-@@ -51,6 +51,10 @@ public:
+@@ -1,8 +1,11 @@
+ #ifndef SWITCH_NODE_H
+ #define SWITCH_NODE_H
+ 
++#include <map>
++#include <mutex>
+ #include <unordered_map>
+ #include <ns3/node.h>
++#include "limer-route-choice.h"
+ #include "qbb-net-device.h"
+ #include "switch-mmu.h"
+ #include "pint.h"
+@@ -17,9 +20,15 @@ class SwitchNode : public Node{
+ 	uint32_t m_ecmpSeed;
+ 	std::unordered_map<uint32_t, std::vector<int> > m_rtTable; // map from ip address (u32) to possible ECMP port (index of dev)
+ 	std::set<uint32_t> active_ports;	// record active ports in switch
++	std::set<LimerRouteChoiceKey> m_limerRouteChoices;
++	std::mutex m_limerRouteChoiceMutex;
+ 
+-	// monitor of PFC
+-	uint32_t m_bytes[pCnt][pCnt][qCnt]; // m_bytes[inDev][outDev][qidx] is the bytes from inDev enqueued for outDev at qidx
++	// Admission accounting needs values only for ingress/egress/queue tuples
++	// that currently contain bytes.  The former 1025 x 1025 x 8 dense array
++	// consumed about 33.6 MiB in every switch even though true-16 switches have
++	// at most a few dozen ports.  A sorted sparse map preserves deterministic
++	// key semantics while making memory proportional to non-empty tuples.
++	std::map<uint64_t, uint32_t> m_bytes;
+ 	
+ 	uint64_t m_txBytes[pCnt]; // counter of tx bytes
+ 
+@@ -35,11 +44,23 @@ protected:
+ 	uint32_t m_ackHighPrio; // set high priority for ACK/NACK
+ 
+ private:
++	static uint64_t QueueByteKey(uint32_t inDev, uint32_t outDev,
++		uint32_t qIndex);
++	void AddQueuedBytes(uint32_t inDev, uint32_t outDev, uint32_t qIndex,
++		uint32_t bytes);
++	void RemoveQueuedBytes(uint32_t inDev, uint32_t outDev, uint32_t qIndex,
++		uint32_t bytes, const char* underflowMessage);
+ 	int GetOutDev(Ptr<const Packet>, CustomHeader &ch);
++	bool RememberLimerRouteChoice(const LimerRouteChoiceEvent& event);
+ 	void SendToDev(Ptr<Packet>p, CustomHeader &ch);
+ 	static uint32_t EcmpHash(const uint8_t* key, size_t len, uint32_t seed);
+-	void CheckAndSendPfc(uint32_t inDev, uint32_t qIndex);
++	void CheckAndSendPfc(uint32_t inDev, uint32_t outDev, uint32_t qIndex,
++		const CustomHeader& trigger);
+ 	void CheckAndSendResume(uint32_t inDev, uint32_t qIndex);
++	void CheckAndSendResumeForPacket(uint32_t inDev, uint32_t outDev,
++		uint32_t qIndex, const CustomHeader& trigger);
++	void RecordPfcSend(bool pause, uint32_t inDev, bool hasOutDev,
++		uint32_t outDev, uint32_t qIndex, const CustomHeader* trigger);
+ public:
+ 	Ptr<SwitchMmu> m_mmu;
+ 
+@@ -50,6 +71,11 @@ public:
+ 	void ClearTable();
  	bool SwitchReceiveFromDevice(Ptr<NetDevice> device, Ptr<Packet> packet, CustomHeader &ch);
  	void SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Packet> p);
- 
++	void SwitchNotifyDrop(uint32_t ifIndex, uint32_t qIndex, Ptr<Packet> p);
++
 +	// LIMER telemetry: read-only accessor for the existing private
 +	// m_txBytes counter (same value PrintSwitchBw already reads internally).
 +	uint64_t GetLimerTxBytes(uint32_t ifIndex) const { return m_txBytes[ifIndex]; }
-+
+ 
  	// for approximate calc in PINT
  	int logres_shift(int b, int l);
- 	int log2apprx(int x, int b, int m, int l); // given x of at most b bits, use most significant m bits of x, calc the result in l bits
-@@ -69,6 +73,16 @@ public:
+@@ -69,6 +95,16 @@ public:
  	 * time, sw_id, port_id, txBytes
  	 */
  	void PrintSwitchBw(FILE* bw_output, uint32_t bw_mon_interval);
@@ -145,3 +3211,443 @@ index db59fba..d778961 100644
  };
  
  } /* namespace ns3 */
+diff --git a/simulation/src/point-to-point/model/limer-congestion-signal.cc b/simulation/src/point-to-point/model/limer-congestion-signal.cc
+new file mode 100644
+index 0000000..5d88165
+--- /dev/null
++++ b/simulation/src/point-to-point/model/limer-congestion-signal.cc
+@@ -0,0 +1,42 @@
++#include "limer-congestion-signal.h"
++
++#include <atomic>
++#include <mutex>
++
++namespace ns3 {
++namespace {
++std::atomic<LimerCongestionSignalSink> g_sink(nullptr);
++std::atomic<void*> g_context(nullptr);
++std::mutex g_registration_mutex;
++}  // namespace
++
++bool RegisterLimerCongestionSignalSink(
++    LimerCongestionSignalSink sink, void* context) {
++  if (sink == nullptr) return false;
++  std::lock_guard<std::mutex> guard(g_registration_mutex);
++  if (g_sink.load(std::memory_order_acquire) != nullptr) return false;
++  g_context.store(context, std::memory_order_relaxed);
++  g_sink.store(sink, std::memory_order_release);
++  return true;
++}
++
++bool ClearLimerCongestionSignalSink(
++    LimerCongestionSignalSink sink, void* context) {
++  std::lock_guard<std::mutex> guard(g_registration_mutex);
++  if (sink == nullptr || g_sink.load(std::memory_order_acquire) != sink ||
++      g_context.load(std::memory_order_acquire) != context) return false;
++  g_sink.store(nullptr, std::memory_order_release);
++  g_context.store(nullptr, std::memory_order_release);
++  return true;
++}
++
++bool HasLimerCongestionSignalSink() {
++  return g_sink.load(std::memory_order_acquire) != nullptr;
++}
++
++void EmitLimerCongestionSignal(const LimerCongestionSignalEvent& event) {
++  LimerCongestionSignalSink sink = g_sink.load(std::memory_order_acquire);
++  if (sink == nullptr) return;
++  sink(event, g_context.load(std::memory_order_acquire));
++}
++}  // namespace ns3
+diff --git a/simulation/src/point-to-point/model/limer-congestion-signal.h b/simulation/src/point-to-point/model/limer-congestion-signal.h
+new file mode 100644
+index 0000000..90f349c
+--- /dev/null
++++ b/simulation/src/point-to-point/model/limer-congestion-signal.h
+@@ -0,0 +1,74 @@
++#ifndef LIMER_CONGESTION_SIGNAL_H
++#define LIMER_CONGESTION_SIGNAL_H
++
++#include <cstdint>
++
++namespace ns3 {
++
++enum LimerCongestionSignalType : uint8_t {
++  LIMER_SIGNAL_ECN_MARK = 1,
++  LIMER_SIGNAL_CNP_ACK_EMIT = 2,
++  LIMER_SIGNAL_CNP_ACK_RX = 3,
++  LIMER_SIGNAL_QP_RATE_DECREASE = 4,
++  LIMER_SIGNAL_PFC_PAUSE_SEND = 5,
++  LIMER_SIGNAL_PFC_PAUSE_RECEIVE = 6,
++  LIMER_SIGNAL_PFC_RESUME_SEND = 7,
++  LIMER_SIGNAL_PFC_RESUME_RECEIVE = 8,
++};
++
++// A mechanism event emitted only at the real data-plane state transition.
++// Validity bits keep zero representable and prevent consumers from inventing
++// unavailable queue/QP context.
++struct LimerCongestionSignalEvent {
++  uint64_t timestamp_ns = 0;
++  uint8_t event_type = 0;
++  uint32_t node_id = 0;
++  uint32_t node_type = 0;
++  uint32_t port_id = 0;
++  bool has_trigger_out_port = false;
++  uint32_t trigger_out_port = 0;
++  uint16_t pg = 0;
++
++  bool has_flow = false;
++  uint32_t flow_src = 0;
++  uint32_t flow_dst = 0;
++  uint16_t flow_sport = 0;
++  uint16_t flow_dport = 0;
++  bool has_packet_tuple = false;
++  uint32_t packet_sip = 0;
++  uint32_t packet_dip = 0;
++  uint16_t packet_sport = 0;
++  uint16_t packet_dport = 0;
++
++  bool has_queue_state = false;
++  uint64_t queue_bytes = 0;
++  bool has_threshold_state = false;
++  bool has_shared_state = false;
++  bool has_headroom_state = false;
++  uint64_t shared_used_bytes = 0;
++  uint64_t threshold_low_bytes = 0;
++  uint64_t threshold_high_bytes = 0;
++  uint64_t headroom_bytes = 0;
++
++  uint32_t signal_before = 0;
++  uint32_t signal_after = 0;
++  uint32_t pause_time = 0;
++  bool has_rate = false;
++  uint64_t old_rate_bps = 0;
++  uint64_t new_rate_bps = 0;
++  uint32_t cc_mode = 0;
++};
++
++typedef void (*LimerCongestionSignalSink)(
++    const LimerCongestionSignalEvent&, void*);
++
++bool RegisterLimerCongestionSignalSink(
++    LimerCongestionSignalSink sink, void* context);
++bool ClearLimerCongestionSignalSink(
++    LimerCongestionSignalSink sink, void* context);
++bool HasLimerCongestionSignalSink();
++void EmitLimerCongestionSignal(const LimerCongestionSignalEvent& event);
++
++}  // namespace ns3
++
++#endif
+diff --git a/simulation/src/point-to-point/model/limer-route-choice.cc b/simulation/src/point-to-point/model/limer-route-choice.cc
+new file mode 100644
+index 0000000..705fa20
+--- /dev/null
++++ b/simulation/src/point-to-point/model/limer-route-choice.cc
+@@ -0,0 +1,108 @@
++#include "limer-route-choice.h"
++
++#include <atomic>
++#include <mutex>
++
++namespace ns3 {
++namespace {
++
++std::atomic<LimerRouteChoiceSink> g_limerRouteChoiceSink(nullptr);
++std::atomic<void*> g_limerRouteChoiceContext(nullptr);
++std::atomic<uint64_t> g_limerRouteChoiceMaxEvents(0);
++std::atomic<uint64_t> g_limerRouteChoiceSeen(0);
++std::atomic<uint64_t> g_limerRouteChoiceRecorded(0);
++std::atomic<uint64_t> g_limerRouteChoiceDeduplicated(0);
++std::atomic<uint64_t> g_limerRouteChoiceOverflow(0);
++std::mutex g_limerRouteChoiceRegistrationMutex;
++
++}  // namespace
++
++bool RegisterLimerRouteChoiceSink(
++    LimerRouteChoiceSink sink, void* context, uint64_t max_events) {
++  if (sink == nullptr || max_events == 0 || max_events > 10000000ULL) {
++    return false;
++  }
++  std::lock_guard<std::mutex> guard(g_limerRouteChoiceRegistrationMutex);
++  if (g_limerRouteChoiceSink.load(std::memory_order_acquire) != nullptr) {
++    return false;
++  }
++  g_limerRouteChoiceMaxEvents.store(max_events, std::memory_order_relaxed);
++  g_limerRouteChoiceSeen.store(0, std::memory_order_relaxed);
++  g_limerRouteChoiceRecorded.store(0, std::memory_order_relaxed);
++  g_limerRouteChoiceDeduplicated.store(0, std::memory_order_relaxed);
++  g_limerRouteChoiceOverflow.store(0, std::memory_order_relaxed);
++  g_limerRouteChoiceContext.store(context, std::memory_order_relaxed);
++  g_limerRouteChoiceSink.store(sink, std::memory_order_release);
++  return true;
++}
++
++bool ClearLimerRouteChoiceSink(LimerRouteChoiceSink sink, void* context) {
++  std::lock_guard<std::mutex> guard(g_limerRouteChoiceRegistrationMutex);
++  if (sink == nullptr ||
++      g_limerRouteChoiceSink.load(std::memory_order_acquire) != sink ||
++      g_limerRouteChoiceContext.load(std::memory_order_acquire) != context) {
++    return false;
++  }
++  // Simulator workers are quiescent before the frontend clears the sink.
++  // Publish the null sink first so no subsequent emitter can consume the
++  // context that is about to be cleared.
++  g_limerRouteChoiceSink.store(nullptr, std::memory_order_release);
++  g_limerRouteChoiceContext.store(nullptr, std::memory_order_release);
++  return true;
++}
++
++bool HasLimerRouteChoiceSink() {
++  return g_limerRouteChoiceSink.load(std::memory_order_acquire) != nullptr;
++}
++
++void EmitLimerRouteChoice(const LimerRouteChoiceEvent& event) {
++  LimerRouteChoiceSink sink =
++      g_limerRouteChoiceSink.load(std::memory_order_acquire);
++  if (sink == nullptr) return;
++  void* context = g_limerRouteChoiceContext.load(std::memory_order_acquire);
++  sink(event, context);
++}
++
++LimerRouteChoiceCounters GetLimerRouteChoiceCounters() {
++  return LimerRouteChoiceCounters{
++      g_limerRouteChoiceMaxEvents.load(std::memory_order_relaxed),
++      g_limerRouteChoiceSeen.load(std::memory_order_relaxed),
++      g_limerRouteChoiceRecorded.load(std::memory_order_relaxed),
++      g_limerRouteChoiceDeduplicated.load(std::memory_order_relaxed),
++      g_limerRouteChoiceOverflow.load(std::memory_order_relaxed)};
++}
++
++bool EmitLimerRouteChoiceOnce(
++    std::set<LimerRouteChoiceKey>* observed,
++    const LimerRouteChoiceEvent& event) {
++  if (observed == nullptr || !HasLimerRouteChoiceSink()) return false;
++  g_limerRouteChoiceSeen.fetch_add(1, std::memory_order_relaxed);
++  const LimerRouteChoiceKey key = LimerRouteChoiceKey::From(event);
++  if (observed->find(key) != observed->end()) {
++    g_limerRouteChoiceDeduplicated.fetch_add(1, std::memory_order_relaxed);
++    return false;
++  }
++
++  uint64_t recorded =
++      g_limerRouteChoiceRecorded.load(std::memory_order_relaxed);
++  const uint64_t cap =
++      g_limerRouteChoiceMaxEvents.load(std::memory_order_relaxed);
++  while (recorded < cap &&
++         !g_limerRouteChoiceRecorded.compare_exchange_weak(
++             recorded, recorded + 1, std::memory_order_relaxed,
++             std::memory_order_relaxed)) {
++  }
++  if (recorded >= cap) {
++    g_limerRouteChoiceOverflow.fetch_add(1, std::memory_order_relaxed);
++    LimerRouteChoiceEvent overflow = event;
++    overflow.evidence_overflow = true;
++    EmitLimerRouteChoice(overflow);
++    return false;
++  }
++
++  observed->insert(key);
++  EmitLimerRouteChoice(event);
++  return true;
++}
++
++}  // namespace ns3
+diff --git a/simulation/src/point-to-point/model/limer-route-choice.h b/simulation/src/point-to-point/model/limer-route-choice.h
+new file mode 100644
+index 0000000..c6beb9d
+--- /dev/null
++++ b/simulation/src/point-to-point/model/limer-route-choice.h
+@@ -0,0 +1,192 @@
++#ifndef LIMER_ROUTE_CHOICE_H
++#define LIMER_ROUTE_CHOICE_H
++
++#include <cstdint>
++#include <set>
++#include <tuple>
++#include <vector>
++
++namespace ns3 {
++
++enum LimerRouteDirection : uint8_t {
++  LIMER_ROUTE_DATA = 1,
++  LIMER_ROUTE_ACK = 2,
++  LIMER_ROUTE_NACK = 3,
++};
++
++static const uint16_t LIMER_ROUTE_BACKGROUND_SPORT_MIN = 49152;
++static const uint16_t LIMER_ROUTE_BACKGROUND_SPORT_MAX = 65535;
++
++inline uint32_t LimerNodeIdFromIpv4(uint32_t address) {
++  return (address >> 8) & 0xffff;
++}
++
++// One decision made by the live forwarding path.  packet_* is the exact wire
++// tuple consumed by the switch hash.  flow_* is the normalized sender QP
++// identity, so reverse ACK/NACK choices can be joined to the same schedule.
++struct LimerRouteChoiceEvent {
++  uint64_t timestamp_ns = 0;
++  uint32_t node_id = 0;
++  uint32_t node_type = 0;
++  uint32_t packet_sip = 0;
++  uint32_t packet_dip = 0;
++  uint16_t packet_sport = 0;
++  uint16_t packet_dport = 0;
++  uint16_t pg = 0;
++  uint8_t l3_protocol = 0;
++  uint8_t direction = 0;
++  uint32_t flow_src = 0;
++  uint32_t flow_dst = 0;
++  uint16_t flow_sport = 0;
++  uint16_t flow_dport = 0;
++  uint32_t ecmp_seed = 0;
++  uint32_t ecmp_hash = 0;
++  uint32_t candidate_count = 0;
++  uint32_t bucket = 0;
++  uint32_t egress_port = 0;
++  // Internal control record.  It is delivered to the registered sink when
++  // the global evidence cap is exhausted and must never be serialized as a
++  // normal route-selection row.
++  bool evidence_overflow = false;
++};
++
++struct LimerRouteChoiceCounters {
++  uint64_t max_events = 0;
++  uint64_t seen = 0;
++  uint64_t recorded = 0;
++  uint64_t deduplicated = 0;
++  uint64_t overflow = 0;
++};
++
++struct LimerRouteChoiceKey {
++  uint32_t packet_sip;
++  uint32_t packet_dip;
++  uint16_t packet_sport;
++  uint16_t packet_dport;
++  uint16_t pg;
++  uint8_t l3_protocol;
++  uint8_t direction;
++  uint32_t flow_src;
++  uint32_t flow_dst;
++  uint16_t flow_sport;
++  uint16_t flow_dport;
++  uint32_t ecmp_seed;
++  uint32_t ecmp_hash;
++  uint32_t candidate_count;
++  uint32_t bucket;
++  uint32_t egress_port;
++
++  static LimerRouteChoiceKey From(const LimerRouteChoiceEvent& event) {
++    return {
++        event.packet_sip, event.packet_dip,
++        event.packet_sport, event.packet_dport, event.pg,
++        event.l3_protocol, event.direction,
++        event.flow_src, event.flow_dst,
++        event.flow_sport, event.flow_dport,
++        event.ecmp_seed, event.ecmp_hash, event.candidate_count,
++        event.bucket, event.egress_port};
++  }
++
++  bool operator<(const LimerRouteChoiceKey& other) const {
++    return std::tie(
++               packet_sip, packet_dip, packet_sport, packet_dport, pg,
++               l3_protocol, direction, flow_src, flow_dst, flow_sport,
++               flow_dport, ecmp_seed, ecmp_hash, candidate_count, bucket,
++               egress_port) <
++           std::tie(
++               other.packet_sip, other.packet_dip, other.packet_sport,
++               other.packet_dport, other.pg, other.l3_protocol,
++               other.direction, other.flow_src, other.flow_dst,
++               other.flow_sport, other.flow_dport, other.ecmp_seed,
++               other.ecmp_hash, other.candidate_count, other.bucket,
++               other.egress_port);
++  }
++};
++
++struct LimerEcmpSelection {
++  bool ok = false;
++  uint32_t candidate_count = 0;
++  uint32_t bucket = 0;
++  uint32_t egress_port = 0;
++};
++
++// Populate the wire and normalized-flow portions of a route event.  DATA
++// carries the sender QP tuple directly.  ACK/NACK is generated by ReceiveUdp
++// with reversed IPs and swapped ports, so its dport is the original reserved
++// source port.  Returning false means this is not background RDMA traffic.
++inline bool LimerClassifyBackgroundRoute(
++    uint8_t l3_protocol, uint32_t packet_sip, uint32_t packet_dip,
++    uint16_t packet_sport, uint16_t packet_dport, uint16_t pg,
++    LimerRouteChoiceEvent* event) {
++  if (event == nullptr) return false;
++  if (l3_protocol == 0x11) {
++    if (packet_sport < LIMER_ROUTE_BACKGROUND_SPORT_MIN) {
++      return false;
++    }
++    event->direction = LIMER_ROUTE_DATA;
++    event->flow_src = LimerNodeIdFromIpv4(packet_sip);
++    event->flow_dst = LimerNodeIdFromIpv4(packet_dip);
++    event->flow_sport = packet_sport;
++    event->flow_dport = packet_dport;
++  } else if (l3_protocol == 0xFC || l3_protocol == 0xFD) {
++    if (packet_dport < LIMER_ROUTE_BACKGROUND_SPORT_MIN) {
++      return false;
++    }
++    event->direction =
++        l3_protocol == 0xFC ? LIMER_ROUTE_ACK : LIMER_ROUTE_NACK;
++    event->flow_src = LimerNodeIdFromIpv4(packet_dip);
++    event->flow_dst = LimerNodeIdFromIpv4(packet_sip);
++    event->flow_sport = packet_dport;
++    event->flow_dport = packet_sport;
++  } else {
++    return false;
++  }
++  event->packet_sip = packet_sip;
++  event->packet_dip = packet_dip;
++  event->packet_sport = packet_sport;
++  event->packet_dport = packet_dport;
++  event->pg = pg;
++  event->l3_protocol = l3_protocol;
++  return true;
++}
++
++// This helper is used by the actual forwarding path.  Tests exercise the
++// exact same bucket-to-vector-order operation rather than reimplementing it.
++inline LimerEcmpSelection LimerSelectEcmp(
++    uint32_t hash, const std::vector<int>& candidates) {
++  LimerEcmpSelection selection;
++  if (candidates.empty()) return selection;
++  selection.candidate_count = static_cast<uint32_t>(candidates.size());
++  selection.bucket = hash % selection.candidate_count;
++  const int egress = candidates[selection.bucket];
++  if (egress < 0) return selection;
++  selection.egress_port = static_cast<uint32_t>(egress);
++  selection.ok = true;
++  return selection;
++}
++
++typedef void (*LimerRouteChoiceSink)(const LimerRouteChoiceEvent&, void*);
++
++// Explicit registration keeps the point-to-point DSO independent of frontend
++// symbols.  Registration occurs before Simulator::Run and is immutable while
++// MTP worker threads emit choices.
++bool RegisterLimerRouteChoiceSink(
++    LimerRouteChoiceSink sink, void* context,
++    uint64_t max_events = 1000000);
++bool ClearLimerRouteChoiceSink(LimerRouteChoiceSink sink, void* context);
++bool HasLimerRouteChoiceSink();
++void EmitLimerRouteChoice(const LimerRouteChoiceEvent& event);
++LimerRouteChoiceCounters GetLimerRouteChoiceCounters();
++
++// The caller owns synchronization for observed.  Across every node-local set,
++// this records at most the cap supplied at sink registration.  A duplicate is
++// counted but neither stored nor emitted.  The first over-cap observation is
++// emitted as an evidence_overflow control record so the sink can persist its
++// fatal summary before terminating the run.
++bool EmitLimerRouteChoiceOnce(
++    std::set<LimerRouteChoiceKey>* observed,
++    const LimerRouteChoiceEvent& event);
++
++}  // namespace ns3
++
++#endif  // LIMER_ROUTE_CHOICE_H

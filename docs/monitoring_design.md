@@ -3,27 +3,22 @@
 ## Counter model
 
 - **Cumulative counters** (`tx_bytes`, `tx_packets`, `rx_bytes`, `rx_packets`,
-  `dropped_packets`, `drop_bytes`, `ecn_marks`, `pfc_events`, `nacks`): plain
-  in-memory integers, incremented at the exact source-code sites listed in
-  `code_map.md`, never reset during a run. The C++ collector writes the raw
-  cumulative value at each periodic sample tick; it does **not** compute
-  rates or deltas itself.
+  `dropped_packets`, `drop_bytes`, `link_errors`, `ecn_marks`, `pfc_events`,
+  `nacks`) are per-physical-device integers updated at the actual channel,
+  drop/error, or congestion event. The same source covers HOST, SWITCH, and
+  NVSWITCH endpoints.
 - **Instantaneous gauges** (`queue_bytes`, `outstanding_bytes`): read
   directly from live simulator state (`SwitchMmu::egress_bytes`,
   `RdmaQueuePair::GetOnTheFly()`) at sample time — a point-in-time snapshot,
   not accumulated.
-- **Interval-derived fields** (`observed_throughput_bps`, `utilization`,
-  `effective_throughput_bps`, `max_queue_bytes`, `max_queue_packets`): never
-  computed by the C++ collector. `tools/build_monitoring_dataset.py`
-  (Phase 7) computes these from consecutive raw rows during windowing. This
-  keeps the hot path (inside `Simulator::Schedule` callbacks) to integer
-  increments and periodic reads only — no division, no rate math, no
-  per-packet disk I/O.
-- **Discrete events** (collective start/finish) are written immediately,
-  one row per event, directly to `collective_telemetry.csv` — these are
-  O(number of collectives), not O(number of packets), so immediate
-  `fprintf`+`fflush` per event carries negligible overhead (confirmed by the
-  overhead study, Phase 9).
+- **Interval fields** (`observed_throughput_bps`, `utilization`,
+  `effective_throughput_bps`, `max_queue_bytes`, `max_queue_packets`) are
+  computed in C++. Rates use device-counter deltas and exact elapsed virtual
+  time. Queue high-water marks are updated on every enqueue, so a transient
+  spike between snapshots is retained with its event timestamp.
+- **Output is buffered in memory** and written on `Close()`. Switch/NIC
+  snapshots and collective start/finish updates use the MTP critical section;
+  no disk I/O occurs inside a simulation callback.
 
 ## Sampling loop
 
@@ -32,11 +27,16 @@ One periodic sampler, `TelemetryCollector::Sample()`, scheduled via
 — the identical pattern already used (but never invoked) by
 `monitor_qlen`/`monitor_bw` in `common.h`. On each tick it walks the same
 `NodeContainer n` those dormant monitors walk: for `GetNodeType() == 1`
-(switch) nodes, write one `switch_telemetry.csv` row per (port, direction);
-for `GetNodeType() == 0` (host) nodes, write one `nic_telemetry.csv` row per
-NIC. NVSwitch nodes (`GetNodeType() == 2`) are out of scope for M1 (they
-carry NVLink intra-node traffic, classified `INTRA_NODE`, not the ACCESS
-links LIMER targets).
+(network switch) and `== 2` (NVSwitch), emit one row per physical
+(port, direction); for `== 0` (host), emit one row per physical NIC. This
+covers INTRA_NODE, ACCESS, and INTER_SWITCH links.
+
+The coherent full-fabric snapshot cadence is at least 1 ms. A measured 100 us
+public MTP sampling barrier changed the deterministic completion tick, so
+requests below 1000 us are clamped and logged. Sub-ms packet totals and queue
+peaks are still event-accurate. The CSV is intentionally not a full trace of
+every enqueue/dequeue state transition; that would be a separate and much
+larger event-trace data product.
 
 ns-3's `--enable-mtp` (multithreaded) build is in use here (confirmed in
 `ns-3-alibabacloud/simulation/build/astra_ns3/build.sh`'s
@@ -52,9 +52,46 @@ than introducing a new lock.
 | Env var | Default | Effect |
 |---|---|---|
 | `LIMER_TELEMETRY_ENABLE` | `1` | `0` disables all instrumentation; `TelemetryCollector` becomes a no-op and no LIMER files are written (used for the Step 11 overhead baseline and the on/off parity check) |
-| `LIMER_TELEMETRY_INTERVAL_US` | `1000` (1 ms) | Sampling period for the periodic switch/NIC loop |
+| `LIMER_TELEMETRY_INTERVAL_US` | `1000` (1 ms) | Requested snapshot period; values below 1000 are raised to 1000 us while event high-water tracking remains active |
 | `LIMER_TELEMETRY_DIR` | required when enabled | Output directory for the run's `switch_telemetry.csv` / `nic_telemetry.csv` / `collective_telemetry.csv` |
 | `LIMER_RUN_ID` | generated if unset | Written into every row's `run_id` column and into `run_manifest.json` |
+
+## P2 congestion controls: one physical rail, two time windows
+
+P2 uses finite real RDMA background QPs for the executable `incast` and
+`queue_buildup` controls. This traffic is marked `BACKGROUND` and is kept out
+of the `TRAINING` RDMA/NCCL baselines. The contract intentionally distinguishes
+four objects that must not be conflated:
+
+1. The route bucket is the Murmur3 ECMP result, 0 or 1. Host next hops are
+   installed in ascending physical interface order, so true-16 bucket 0 means
+   `ifIndex=2` / Plane A and bucket 1 means `ifIndex=3` / Plane B. Switch
+   forwarding order is unchanged.
+2. The generator selects a reserved source port only if both the DATA tuple
+   and the reversed ACK tuple hash to that same bucket. Runtime
+   `primary_nic`/`active_nic` evidence must report the corresponding physical
+   interface (2 or 3), not the bucket number.
+3. The launch window covers the declared QP start events: earliest scheduled
+   start through one nanosecond after the latest scheduled start. The realized
+   pressure window is measured from first DATA TX through the last
+   ACK-qualified QP completion. For two-wave queue buildup, wave 2 must start
+   before wave 1 finishes. A configured label interval is not accepted as a
+   substitute for either measurement.
+4. All background QPs must complete by the absolute 200,000,000 ns virtual-time
+   deadline with `rto_us=250000`, `retry_limit=0`, and zero observed retry,
+   failover, standby, or error events. This places the RTO beyond the evidence
+   deadline, so retransmission cannot manufacture the pressure signal.
+
+The congestion validator resolves the declared target and paired ACCESS links
+from the frozen and runtime `link_map.csv`, then evaluates queue and throughput
+only on the target port. Activity on the paired rail is isolation evidence;
+it cannot rescue a missing effect on the target rail.
+
+Prepared-v4 is preserved for provenance but excluded from P2 evidence because
+its flows could occupy both rails and its nominal 200 ms truth interval
+overstated the finite realized pressure duration. The rules above are the v5
+preparation/execution contract. They do not assert a stage result: P2 remains
+open until executed v5 artifacts pass the independent evaluator.
 
 ## Why the stock 2-line `microAllReduce.txt` isn't used for the monitoring
 ## experiments
@@ -144,10 +181,12 @@ which doubles as both the schedule fed into the simulator
 (`LIMER_FAULT_SCHEDULE` env var) and the ground-truth label file. The C++
 side (`FaultInjector::Init()`) just reads it and calls
 `Simulator::Schedule` twice per fault: once at `start_time_ns` to apply,
-once at `end_time_ns` to revert. It only calls
-`QbbNetDevice::SetDataRate()`/`SetReceiveErrorModel()` - both already
-public methods SimAI's own topology parser uses at startup - no new ns-3
-mechanism.
+once at `end_time_ns` to revert. Bandwidth faults use
+`QbbNetDevice::SetDataRate()` and corruption uses `SetReceiveErrorModel()`.
+The finite detection benchmark additionally uses small QbbNetDevice hooks to
+latch link transitions and recover corrupted packets after a configured delay;
+these hooks provide observable fault state without adding a new ns-3 channel or
+routing mechanism.
 
 **Three real bugs found and fixed while getting this to work end-to-end**
 (all verified against actual runs, not just inspection):
@@ -189,3 +228,27 @@ specific run, that check is orthogonal to fault injection).
 hang the simulator (see "Fault B" above) - random packet-loss severities
 default to a lower, still-unvalidated range; treat that path as
 experimental.
+
+## Finite mixed-fault detection benchmark
+
+`scripts/run_detection_baseline_comparison.sh` adds a fixed 16-GPU benchmark
+with bandwidth degradation, a short recoverable packet-loss burst, and a
+200 us link flap. The same `fault_events.csv` is evaluated by switch, host,
+RDMA-timeout, and NCCL-watchdog baselines; labels are joined only after alarm
+generation.
+
+Two simulator limitations shape the finite fault model. First, the stock
+training path has NACK-triggered go-back-N but no synthetic sender RTO, so a
+permanently lost final QP packet can stall forever. That remains the default
+baseline semantic: short RTO and standby transport machinery require explicit
+recovery opt-in, while P2 `BACKGROUND` QPs use their separately recorded finite
+transport contract. Corrupted benchmark packets are therefore counted as link
+errors and re-delivered after 50 us, modeling finite link-layer recovery.
+The QG-HMM benchmark may select 10/50/100 us through an optional ninth schedule
+column; legacy schedules without the column retain 50 us.
+Second, removing an ACCESS link requires global route reconstruction and is
+not reversible in the original helper. A flap is modeled as a latched down
+state plus temporary 1 Gbps capacity, restored after 200 us. Per-device
+`flap_count` and down/up timestamps make the transition visible even though it
+falls entirely between coherent 1 ms snapshots. Exact definitions and initial
+results are in `docs/detection_baselines.md`.

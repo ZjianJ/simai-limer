@@ -1,0 +1,2 @@
+fault_id,fault_type,target_link_id,start_time_ns,end_time_ns,severity,parameter_before,parameter_after,recovery_delay_ns
+p2-carrier-flap-gpu00,carrier_flap,L0-24,100000,200000,100000,up,down,0

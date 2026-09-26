@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Explore LIMER's actual 16-GPU dual-plane topology: all 92 nodes, 304 physical links and illustrative communication paths.">
+<title>LIMER · 完整拓扑动画</title>
+<style>
+:root{color-scheme:dark;--bg:#09111d;--panel:#101e30;--line:#263b53;--text:#edf5ff;--muted:#a5b9d0;--a:#53e1c2;--b:#96b5ff;--local:#ffd18b}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 20% 0,#12313b 0,transparent 45%),var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}main{max-width:1880px;margin:auto;padding:24px 28px}button,select,input{font:inherit}button,select{color:var(--text);background:#15283e;border:1px solid #3a526c;border-radius:8px;padding:8px 12px}button{cursor:pointer}button:hover,select:hover{border-color:var(--a)}button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid #fff;outline-offset:4px}a{color:var(--a)}h1,h2,p{margin-top:0}h1{font-size:clamp(25px,3vw,38px);line-height:1.2;letter-spacing:-.6px;margin:7px 0 9px}h2{font-size:16px;margin-bottom:12px}header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}.eyebrow{font-size:11px;letter-spacing:3px;color:var(--a)}.muted{color:var(--muted)}.small{font-size:12px}.header-actions{display:flex;gap:8px;flex-shrink:0}.facts{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 12px}.fact{padding:6px 12px;border:1px solid var(--line);border-radius:20px;background:#101f30;font-size:12px}.fact strong{color:#fff;font-size:15px;margin-right:5px}.chapters{display:flex;gap:6px;overflow-x:auto;padding:3px 2px 12px}.chapters button{font-size:12px;white-space:nowrap;padding:8px 11px}.chapters button.active{background:#173f43;border-color:var(--a);color:#d2fff3}.layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:14px;align-items:start}.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden}.canvas-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}.canvas-head h2{margin:0}.canvas-tools{display:flex;align-items:center;gap:12px;font-size:12px;flex-wrap:wrap}.canvas-tools select{padding:4px 7px;font-size:12px}.canvas-tools label{display:flex;align-items:center;gap:5px}.canvas-tools input{accent-color:var(--a)}.viewport{overflow:auto;background:#091625;overscroll-behavior:contain}#network{display:block;width:100%;min-width:1000px;height:auto;font-family:system-ui,"Microsoft YaHei",sans-serif}.node{cursor:pointer;outline:none}.node:focus-visible .node-box{stroke:#fff!important;stroke-width:3}.node text{pointer-events:none;user-select:none}.physical-link{fill:none;pointer-events:none;vector-effect:non-scaling-stroke}.route-overlay{fill:none;pointer-events:none;vector-effect:non-scaling-stroke}.legend{display:flex;flex-wrap:wrap;gap:16px;padding:10px 16px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}.legend span{display:inline-flex;align-items:center;gap:7px}.swatch{width:20px;border-top:3px solid var(--a)}.swatch.b{border-color:var(--b)}.swatch.local{border-color:var(--local);border-top-style:dashed}.side{display:grid;gap:12px}.card{padding:16px}.card label{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.form-grid select{width:100%;padding:6px}.wide{grid-column:1/-1}.primary{background:#17413f;border-color:#429c8d;width:100%;margin-top:12px}.route-readout{display:grid;gap:9px;margin-top:12px}.route-row{font:12px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace;border-left:3px solid var(--a);background:#091726;padding:9px;overflow-wrap:anywhere}.route-row.b{border-color:var(--b)}.route-row.local{border-color:var(--local)}.route-caption{font:12px/1.65 system-ui,"Microsoft YaHei",sans-serif;color:var(--muted)}#selectionTitle{display:flex;align-items:center;justify-content:space-between;gap:8px}#clearSelection{font-size:11px;padding:4px 8px}.neighbor-grid{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0}.neighbor-grid button{font-size:11px;padding:4px 6px}.selection-info{font-size:13px;color:var(--muted)}.selection-info strong{color:var(--text)}.notice{font-size:12px;padding:12px 16px;color:#d6dfeb;background:#17263a;border-left:3px solid var(--local);margin:12px 0 0}.caption{padding:15px 18px;background:linear-gradient(105deg,#12363c,#102035);border-left:3px solid var(--a);border-radius:7px;min-height:100px;margin-top:14px}.caption h2{margin:0 0 5px;font-size:18px}.caption p{font-size:14px;margin:0;color:#d0e2ef}.controls{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}.controls input{flex:1;min-width:100px;accent-color:var(--a)}.controls select{padding:7px}.controls button{min-width:82px}.controls .timer{font-variant-numeric:tabular-nums;min-width:128px;font-size:12px;color:var(--muted)}details{margin-top:15px;font-size:12px;color:var(--muted)}summary{cursor:pointer;color:var(--text)}details p{margin:8px 0}.provenance{overflow-wrap:anywhere}footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);padding:18px 0 4px}.error{padding:20px;color:#ffd18b}noscript{display:block;padding:20px;color:#ffd18b}svg .layer-label{font-size:15px;font-weight:600}svg .layer-note{font-size:12px;fill:#a5b9d0}.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(min-width:1800px){.layout{grid-template-columns:minmax(0,1fr) 335px}}@media(max-width:1100px){main{padding:18px}.layout{grid-template-columns:1fr}.side{grid-template-columns:1fr 1fr}.canvas-head{padding:10px 12px}}@media(max-width:620px){main{padding:12px}header{align-items:center}.eyebrow{font-size:9px;letter-spacing:2px}.header-actions{flex-direction:column}.header-actions button{font-size:12px;padding:6px 9px}.side{grid-template-columns:1fr}.facts{gap:5px}.fact{padding:4px 8px}.canvas-tools{gap:8px}.controls{gap:7px}.controls input{order:5;flex-basis:100%}.caption{min-height:132px}footer{display:block}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<main id="app">
+  <header>
+    <div><div class="eyebrow">LIMER / FABRIC ATLAS</div><h1 id="title">完整拓扑，一条路径看清楚</h1><p id="subtitle" class="muted small">16 个 GPU · 双平面 · 所有核心展开，不再折叠。</p></div>
+    <div class="header-actions"><button id="language" type="button">English</button><button id="fullscreen" type="button">全屏</button></div>
+  </header>
+  <div id="facts" class="facts" aria-label="Topology counts"></div>
+  <nav id="chapters" class="chapters" aria-label="Guided tour chapters"></nav>
+  <div class="layout">
+    <section class="panel" aria-labelledby="networkTitle">
+      <div class="canvas-head"><h2 id="networkTitle">真实连接 · 92 节点 / 304 链路</h2><div class="canvas-tools">
+        <label><input id="showLinks" type="checkbox" checked><span id="showLinksLabel">显示全部连线</span></label>
+        <label for="planeFilter"><span id="planeFilterLabel">视图</span><select id="planeFilter"><option value="all">A + B</option><option value="A">A</option><option value="B">B</option></select></label>
+        <label for="zoom"><span id="zoomLabel">缩放</span><select id="zoom"><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
+      </div></div>
+      <div class="viewport" id="viewport"><svg id="network" viewBox="0 0 1440 850" role="group" aria-labelledby="svgTitle svgDesc">
+        <title id="svgTitle">LIMER 完整双平面拓扑</title>
+        <desc id="svgDesc">四台服务器内共16个GPU和4台NVSwitch。每个GPU接入A、B各一次；每平面4台ASW分别连接全部32台同层并列核心。选择设备查看邻居，选择路径观看示意动画。</desc>
+        <g id="graphBackground"></g><g id="graphLinks"></g><g id="graphRoutes"></g><g id="graphNodes"></g><g id="graphPackets" aria-hidden="true"></g>
+      </svg></div>
+      <div class="legend"><span><i class="swatch"></i><span id="legendA">A 平面 · 实线</span></span><span><i class="swatch b"></i><span id="legendB">B 平面 · 虚线高亮</span></span><span><i class="swatch local"></i><span id="legendLocal">NVSwitch · 2400 Gbps</span></span><span id="legendUnits">ACCESS 100 Gbps · ASW–PSW 400 Gbps</span></div>
+    </section>
+    <aside class="side">
+      <section class="panel card"><h2 id="routeTitle">自己选一条通信路径</h2>
+        <div class="form-grid">
+          <div><label id="srcLabel" for="src">源 GPU</label><select id="src"></select></div>
+          <div><label id="dstLabel" for="dst">目标 GPU</label><select id="dst"></select></div>
+          <div><label id="railLabel" for="rail">数据平面</label><select id="rail"><option value="A">A</option><option value="B">B</option><option value="both">A + B</option></select></div>
+          <div><label id="spineLabel" for="spine">核心候选编号</label><select id="spine"></select></div>
+        </div>
+        <button id="trace" type="button" class="primary">▶ 演示所选路径</button>
+        <div id="routeReadout" class="route-readout" aria-live="polite"></div>
+        <p id="ecmpNote" class="muted small" style="margin:12px 0 0"></p>
+      </section>
+      <section class="panel card"><h2 id="selectionTitle"><span id="selectionHeading">点击设备，查看邻居</span><button id="clearSelection" type="button">清除</button></h2><div id="selectionBody" class="selection-info" aria-live="polite"></div></section>
+    </aside>
+  </div>
+  <div class="caption" aria-live="polite"><h2 id="captionTitle"></h2><p id="captionText"></p></div>
+  <div class="controls">
+    <button id="play" type="button">▶ 播放导览</button><button id="restart" type="button">↺ 完整导览</button>
+    <input id="seek" type="range" min="0" max="1000" step="1" value="0" aria-label="演示进度">
+    <span id="progressText" class="timer"></span><select id="speed" aria-label="播放速度"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select>
+  </div>
+  <div id="scopeNote" class="notice">连接关系来自实际仿真拓扑；移动光点只是正向数据传输示意，不是逐包日志、ACK 回放或性能测量。动画秒数不代表仿真时延。</div>
+  <details><summary id="provenanceTitle">拓扑来源与展示边界</summary><div id="provenanceBody" class="provenance"></div></details>
+  <footer><span id="keyboardNote"></span><span><a id="workflowLink" href="simulation_workflow.html">仿真实验流程</a> · <a id="algorithmLink" href="chunk_feedback_en.html">分流算法动画</a> · <a id="scopeLink" href="topology_explorer.md">使用与核对说明</a></span></footer>
+  <noscript>请启用 JavaScript 以使用交互动画。Please enable JavaScript for this interactive topology.</noscript>
+</main>
+<script src="topology_model.js"></script>
+<script src="topology_explorer.js"></script>
+</body>
+</html>
