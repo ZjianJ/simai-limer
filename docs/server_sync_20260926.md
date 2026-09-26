@@ -41,6 +41,11 @@ bytes. Identical files are represented as tar hardlinks. It includes the entire
 server `limer/results` directory, not just B8. This is not a backup of the whole
 server account or its unrelated projects.
 
+The [GitHub rescue release](https://github.com/ZjianJ/simai-limer/releases/tag/server-rescue-20260926)
+stores the archives outside Git history, with SHA256 manifests. The full results
+archive is split into two numbered parts; concatenate them in order and verify
+the complete archive hash before extracting into a new directory.
+
 ## New local validation
 
 The independent x86-64/GCC 9.4 build completed. All 314 checked canonical source,
